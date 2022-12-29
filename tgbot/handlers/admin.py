@@ -1,7 +1,6 @@
 import random
 import itertools
 import datetime
-import asyncstdlib as a
 import os
 
 from aiogram import Dispatcher
@@ -52,7 +51,7 @@ async def get_channels(message: Message):
     data: Database = bot['db']
 
     channels = []
-    async for index, item in a.enumerate(await data.get_channels()):
+    for index, item in enumerate(await data.get_channels()):
         channels.append(f"{index + 1}) <code>{item['link']}</code> - <a href='{item['link']}'>перейти к каналу</a>")
     if channels:
         await message.answer('\n'.join(channels), disable_web_page_preview=True)

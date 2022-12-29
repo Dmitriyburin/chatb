@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
+from aiogram import executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from tgbot.models.database import Database
@@ -44,7 +45,7 @@ def create_database(config_db):
     return database
 
 
-async def main():
+def main():
     logging.basicConfig(
         level=logging.INFO,
         format=u'%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s',
@@ -61,6 +62,9 @@ async def main():
     bot['misc'] = config.misc
     bot['db'] = create_database(config.db)
 
+    db: Database = bot['db']
+    loop.run_until_complete(db.create_stats_if_not_exist())
+
     register_all_middlewares(dp, config)
     register_all_filters(dp)
     register_all_handlers(dp)
@@ -69,16 +73,11 @@ async def main():
     dp.loop.create_task(mailing_controller(bot, 1))
 
     # start
-    try:
-        await dp.start_polling()
-    finally:
-        await dp.storage.close()
-        await dp.storage.wait_closed()
-        await bot.session.close()
+    executor.start_polling(dp, skip_updates=True)
 
 
 if __name__ == '__main__':
     try:
-        asyncio.run(main())
+        main()
     except (KeyboardInterrupt, SystemExit):
         logger.error("Bot stopped!")

@@ -9,15 +9,26 @@ services:
       context: .
     working_dir: "/usr/src/app/${BOT_NAME:-tg_bot}"
     volumes:
-    - .:/usr/src/app/${BOT_NAME:-tg_bot}
+      - .:/usr/src/app/${BOT_NAME:-tg_bot}
     command: python3 -m bot
     restart: always
     env_file:
       - ".env"
     networks:
-    - tg_bot
+      - tg_bot
+  mongo:
+    image: mongo
+    volumes:
+      - ./data:/data/db
+    networks:
+        - tg_bot
+    ports:
+      - "27017:27017"
+
 
 
 networks:
   tg_bot:
     driver: bridge
+
+

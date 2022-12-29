@@ -172,10 +172,14 @@ class Database:
 
     async def get_stats(self):
         stats = await self.stats.find_one({'stats': 'all'})
-        if not stats:
-            users_count = await self.get_users_count()
-            await self.stats.insert_one({'stats': 'all', 'price': 0, 'users_count': users_count})
         return stats
+
+    async def create_stats_if_not_exist(self):
+        if await self.get_stats():
+            return
+
+        users_count = await self.get_users_count()
+        await self.stats.insert_one({'stats': 'all', 'price': 0, 'users_count': users_count})
 
     async def increment_price_stats(self, price):
         await self.stats.update_one({'stats': 'all'}, {'$inc': {'price': price}})

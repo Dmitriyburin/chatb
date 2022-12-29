@@ -35,9 +35,14 @@ async def check_sub(message):
                 channels_links.append(channel['link'])
 
         except BadRequest as e:
-            channels_links.append(channel['link'])
+            logging.error(e)
+            continue
 
         except Unauthorized as e:
+            logging.error(e)
+            continue
+
+        except Exception as e:
             logging.error(e)
             continue
 

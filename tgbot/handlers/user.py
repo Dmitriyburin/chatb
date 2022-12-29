@@ -1,6 +1,7 @@
 from aiogram import Dispatcher
 from aiogram.types import Message
 from tgbot.keyboards import reply
+from tgbot.handlers.channels import check_sub, required_channel
 
 
 async def user_start(message: Message):
@@ -17,8 +18,16 @@ async def user_start(message: Message):
 
     if not user:
         await data.add_user(message.from_user.id, ref)
+        await message.reply("Hello, unregistered user!", reply_markup=reply.main(buttons))
+    else:
+        await message.reply("Hello, registered user!", reply_markup=reply.main(buttons))
 
-    await message.reply("Hello, user!", reply_markup=reply.main(buttons))
+    white_list = bot['config'].tg_bot.admin_ids
+    user = await data.get_user(message.from_user.id)
+    if message.from_user.id not in white_list and user:
+        channels = await check_sub(message)
+        if channels:
+            await required_channel(message, None)
 
 
 def register_user(dp: Dispatcher):
