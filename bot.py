@@ -54,7 +54,7 @@ def main():
     config = load_config(".env")
 
     loop = asyncio.get_event_loop()
-    storage = RedisStorage2() if config.tg_bot.use_redis else MemoryStorage()
+    storage = RedisStorage2(host='redis') if config.tg_bot.use_redis else MemoryStorage()
     bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
     dp = Dispatcher(bot, storage=storage, loop=loop)
 

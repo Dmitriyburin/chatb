@@ -1,3 +1,4 @@
+import logging
 import random
 import itertools
 import datetime
@@ -21,26 +22,33 @@ async def admin_main(message: Message):
 
 
 async def add_channel_start(message: Message):
-    await message.answer('Перешлите сюда id канала, который хотите добавить')
+    bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    await message.answer(texts['add_channel__id'])
     await AddChannel.channel.set()
 
 
 async def add_channel(message: Message, state: FSMContext):
     bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
     try:
         bot['channel_id'] = int(message.text)
-        await message.answer('Скиньте ссылку на канал, по которой будут переходить пользователи')
+        await message.answer(texts['add_channel__link'])
         await AddChannel.link.set()
     except Exception as e:
-        await message.answer('Cообщение неккоректное, проверьте сообщение и попробуйте еще раз: /add_sub')
+        await message.answer(texts['add_channel__id_uncorrected'])
         await state.finish()
 
 
 async def add_link_channel(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
-    await message.answer('Канал добавлен')
+    await message.answer(texts['add_channel__success'])
     await data.add_channel(bot['channel_id'], message.text)
 
     await state.finish()
@@ -49,31 +57,39 @@ async def add_link_channel(message: Message, state: FSMContext):
 async def get_channels(message: Message):
     bot = message.bot
     data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
     channels = []
     for index, item in enumerate(await data.get_channels()):
-        channels.append(f"{index + 1}) <code>{item['link']}</code> - <a href='{item['link']}'>перейти к каналу</a>")
+        channels.append(texts['get_channel__one'].format(index + 1, item['link'], item['link']))
     if channels:
         await message.answer('\n'.join(channels), disable_web_page_preview=True)
     else:
-        await message.answer('Каналов нет, воспользуйтесь /add_sub, чтобы добавить новый канал')
+        await message.answer(texts['get_channel__not'])
 
 
 async def del_channel_start(message: Message):
-    await message.answer('Скиньте ссылку канала, который хотите удалить')
+    bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+
+    await message.answer(texts['del_channel__link'])
     await DeleteChannel.channel.set()
 
 
 async def del_channel(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
     if await data.get_channel(message.text):
         await data.del_channel(message.text)
-        await message.answer('Канал удален')
+        await message.answer(texts['del_channel__success'])
         await state.finish()
     else:
-        await message.answer('Такого канала нет в ОП.\nИспользуйте /channels, чтобы посмотреть все каналы')
+        await message.answer(texts['del_channel__not_found'])
         await state.finish()
 
 
@@ -94,7 +110,8 @@ async def stats(message: Message):
     bot = message.bot
     data: Database = bot['db']
     misc = bot['misc']
-    texts = misc.texts
+    texts = misc.texts['admin_texts']
+
     stats_all = await data.get_stats()
     price = stats_all['price']
     users_count = stats_all['users_count']
@@ -103,52 +120,58 @@ async def stats(message: Message):
 
 async def add_ref_start(message: Message):
     bot = message.bot
-    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
-    await message.answer(f'Введите дату в формате день.месяц.год (Пример: 20.11.2022)')
+    await message.answer(texts['add_ref__date'])
     await AddRef.date.set()
 
 
 async def add_ref_date(message: Message, state: FSMContext):
     bot = message.bot
-    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
     try:
         date = datetime.datetime.strptime(message.text, "%d.%m.%Y")
 
-        await message.answer(f'Введите число - цену реферальной ссылки (в рублях)')
+        await message.answer(texts['add_ref__price'])
         await AddRef.price.set()
-        await state.update_data(date=date)
+        await state.update_data(date=date.isoformat())
     except Exception as e:
-        print(e)
-        await message.answer(f'Неверно заданное время, попробуйте еще раз: /add_ref')
+        logging.error(e)
+        await message.answer(texts['add_ref__date_uncorrected'])
         await state.finish()
 
 
 async def add_ref(message: Message, state: FSMContext):
     bot = message.bot
-    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
     price = message.text.replace(' ', '')
     if not price.isdigit():
-        await message.answer('В цене должны присутствовать только цифры, попробуйте еще раз /add_ref')
+        await message.answer(texts['add_ref__price_uncorrected'])
         await state.finish()
         return
     await state.update_data(price=price)
-    await message.answer(f'Введите контакт (пример: @anyone)')
+    await message.answer(texts['add_ref__contact'])
     await AddRef.contact.set()
 
 
 async def add_ref_contact(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
     contact = message.text
 
     ref = await generate_start_ref(data)
     price = (await state.get_data())['price']
-    date = (await state.get_data())['date']
-    await message.answer(f'Реферальная ссылка добавлена: <code>{await get_start_url_by_ref(bot, ref)}</code>')
+    date = datetime.datetime.fromisoformat((await state.get_data())['date'])
+
+    await message.answer(texts['add_ref__success'].format(await get_start_url_by_ref(bot, ref)))
     await data.add_ref(ref, int(price), contact, date)
     await state.finish()
 
@@ -156,11 +179,13 @@ async def add_ref_contact(message: Message, state: FSMContext):
 async def get_refs(message: Message, state: FSMContext, month=-1, edit=False):
     bot = message.bot
     data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
     channels_text = []
     channels = list(sorted((await data.get_refs()), key=lambda x: x['date']))
     if not channels:
-        await message.answer('Реферальных ссылок нет, воспользуйтесь /add_ref, чтобы добавить новую')
+        await message.answer(texts['get_refs__not_found'])
         return
 
     channels_per_month = [list(v) for k, v in itertools.groupby(channels, lambda e: (e['date'].month, e['date'].year))]
@@ -174,10 +199,8 @@ async def get_refs(message: Message, state: FSMContext, month=-1, edit=False):
             price_transitions = 0
 
         link = await get_start_url_by_ref(bot, item['ref'])
-        channels_text.append(
-            f"{index + 1}) <code>{link}</code>\n<b>Дата:</b>"
-            f" {item['date'].date()}\n<b>Цена:</b> {item['price']} руб \n<b>Контакт:</b> {item['contact']}\n"
-            f"<b>Цена перехода:</b> {price_transitions}\n")
+        channels_text.append(texts['get_refs__one'].format(index + 1, link, item['date'].date(),
+                                                           item['price'], item['contact'], price_transitions))
     n = 10
     answer = [channels_text[i:i + n] for i in range(0, len(channels_text), n)]
     count = 0
@@ -213,7 +236,11 @@ async def month_callback(call: CallbackQuery, state: FSMContext):
 
 
 async def ref_stats_start(message: Message):
-    await message.answer('Скиньте реферальную ссылку, статистику которой хотите получить')
+    bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+
+    await message.answer(texts['get_stats_ref__link'])
     await StatsRef.ref.set()
 
 
@@ -221,7 +248,7 @@ async def ref_stats(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
     misc = bot['misc']
-    texts = misc.texts
+    texts = misc.texts['admin_texts']
 
     ref = await data.get_ref(await parse_ref_from_link(message.text))
     if ref:
@@ -243,29 +270,40 @@ async def ref_stats(message: Message, state: FSMContext):
                                                         ref['donaters'],
                                                         ref['all_price']))
     else:
-        await message.answer('Такой ссылки не существует')
+        await message.answer(texts['get_stats_ref__not_found'])
     await state.finish()
 
 
 async def del_ref_start(message: Message, state: FSMContext):
-    await message.answer('Скиньте реферальную ссылку, который хотите удалить')
+    bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+
+    await message.answer(texts['del_ref__link'])
     await DeleteRef.ref.set()
 
 
 async def del_ref(message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+
     if await data.get_ref(message.text):
         await data.delete_ref(message.text)
-        await message.answer('Реферальная ссылка удалена')
+        await message.answer(texts['del_ref__success'])
         await state.finish()
     else:
-        await message.answer('Такого реферальной ссылки нет.\nИспользуйте /refs, чтобы посмотреть все ссылки')
+        await message.answer(texts['del_ref__not_found'])
         await state.finish()
 
 
 async def ban_user_start(message: Message, state: FSMContext):
-    await message.answer('Введите id пользователя, которого хотите забанить')
+    bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+
+    await message.answer(texts['ban_user__id'])
     await BanUser.user_id.set()
 
 
@@ -273,14 +311,16 @@ async def ban_user(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
     user_id = message.text
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+
     if not user_id.isdigit():
-        await message.answer('Id должен быть числом, попробуйте еще раз: /ban')
+        await message.answer(texts['ban_user__id_uncorrected'])
         await state.finish()
         return
 
     await data.ban_user(int(user_id))
-    await message.answer('Пользователь забанен')
-    # await sent_ban_to_channel(bot, message, user_id)
+    await message.answer(texts['ban_user__success'])
     await state.finish()
 
 
@@ -293,7 +333,11 @@ async def sent_ban_to_channel(bot, message: Message, banned_user_id, is_unban=Fa
 
 
 async def unban_user_start(message: Message, state: FSMContext):
-    await message.answer('Введите id пользователя, которого хотите разбанить')
+    bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+
+    await message.answer(texts['unban_user__id'])
     await UnbanUser.user_id.set()
 
 
@@ -301,13 +345,16 @@ async def unban_user(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
     user_id = message.text
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+
     if not user_id.isdigit():
-        await message.answer('Id должен быть числом, попробуйте еще раз: /unban')
+        await message.answer(texts['unban_user__id_uncorrected'])
         await state.finish()
         return
 
     await data.unban_user(int(user_id))
-    await message.answer('Пользователь разбанен')
+    await message.answer(texts['unban_user__success'])
     await sent_ban_to_channel(bot, message, user_id, is_unban=True)
     await state.finish()
 
@@ -349,4 +396,5 @@ if __name__ == '__main__':
     from ..misc.functions import generate_start_ref
     from ..models.database import Database
     from ..config import load_config
+
     config = load_config("../../.env")

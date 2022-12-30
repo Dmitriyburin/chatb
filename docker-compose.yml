@@ -19,11 +19,20 @@ services:
   mongo:
     image: mongo
     volumes:
-      - ./data:/data/db
+      - ./data/mongo:/data/db
     networks:
-        - tg_bot
+      - tg_bot
     ports:
       - "27017:27017"
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/var/lib/redis
+      - ./data/redis:/usr/local/etc/redis/redis.conf
+    networks:
+      - tg_bot
 
 
 
