@@ -1,15 +1,15 @@
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
-from aiogram.utils.markdown import hcode
+from tgbot.keyboards import reply
 
 
 async def bot_echo_all(message: types.Message, state: FSMContext):
     bot = message.bot
     misc = bot['misc']
-    data: Database = bot['db']
     texts = misc.texts
+    buttons = misc.buttons
 
-    await message.answer(texts['not_understand'])
+    await message.answer(texts['not_understand'], reply_markup=reply.main(buttons))
 
 
 def register_echo(dp: Dispatcher):

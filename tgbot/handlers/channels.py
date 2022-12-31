@@ -11,12 +11,11 @@ from tgbot.misc.states import RequiredChannel
 async def required_channel(message: Message, state: FSMContext):
     bot = message.bot
     misc = bot['misc']
+    texts = misc.texts
     buttons = misc.buttons
-    data: Database = bot['db']
 
     channels = await check_sub(message)
-    await message.answer('✋ Чтобы продолжить пользоваться ботом, '
-                         'вы должны подписаться на наши каналы',
+    await message.answer(texts['sponsor'],
                          reply_markup=inline.required_sub(buttons, channels))
 
 
@@ -57,7 +56,7 @@ async def check_sub_call(call: CallbackQuery, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
     misc = bot['misc']
-    buttons = misc.buttons
+    texts = misc.texts
     message.from_user.id = call['from']['id']
 
     detail = call.data.split(':')[1]
@@ -65,11 +64,11 @@ async def check_sub_call(call: CallbackQuery, state: FSMContext):
         channels = await check_sub(message)
         if not channels:
             await message.delete()
-            await message.answer('Спасибо, Вы подписались на все каналы! Продолжайте пользоваться ботом')
+            await message.answer(texts['sponsor__success'])
             await state.finish()
 
         else:
-            await call.answer('Вы не подписались на все каналы!')
+            await call.answer(texts['sponsor__not'])
 
     await bot.answer_callback_query(call.id)
 

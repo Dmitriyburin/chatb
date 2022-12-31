@@ -16,6 +16,8 @@ services:
       - ".env"
     networks:
       - tg_bot
+    environment:
+      - TZ=Europe/Moscow
   mongo:
     image: mongo
     volumes:
@@ -24,6 +26,8 @@ services:
       - tg_bot
     ports:
       - "27017:27017"
+    environment:
+      - TZ=Europe/Moscow
   redis:
     image: redis
     ports:
@@ -33,6 +37,8 @@ services:
       - ./data/redis:/usr/local/etc/redis/redis.conf
     networks:
       - tg_bot
+    environment:
+      - TZ=Europe/Moscow
 
 
 

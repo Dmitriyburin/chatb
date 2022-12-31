@@ -11,19 +11,19 @@ from tgbot.keyboards import inline
 
 async def get_mailing(message: Message, mailing):
     bot = message.bot
-    data: Database = bot['db']
     misc = bot['misc']
     buttons = misc.buttons
+    texts = misc.texts['admin_texts']
 
     if mailing:
         await send_message_copy(bot, message.from_user.id, mailing['chat_id'],
                                 mailing['message_id'],
                                 mailing['markup'])
         if mailing['is_active']:
-            await message.answer(f'Рассылка в процессе. Отправлено: {mailing["sent"]}, '
-                                 f'не отправлено: {mailing["not_sent"]}')
+            await message.answer(texts['get_mailing__in_process'].format(mailing['sent'],
+                                                                         mailing['not_sent']))
         else:
-            await message.answer(get_mail_plan(mailing['date']),
+            await message.answer(get_mail_plan(mailing['date'], texts),
                                  reply_markup=inline.delete_mailing(buttons, mailing['message_id']))
 
         return
@@ -32,61 +32,34 @@ async def get_mailing(message: Message, mailing):
 async def get_mailings(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
 
     mailings = await data.get_mailings()
     if not mailings:
-        await message.answer('Рассылок нет, воспользуйтесь /add_mailing, чтобы ее добавить')
+        await message.answer(texts['get_mailings_not'])
 
     for mailing in mailings:
         await get_mailing(message, mailing)
 
 
-async def add_mailing(message: Message, state: FSMContext):
+async def add_mailing_start(message: Message, state: FSMContext):
     bot = message.bot
     misc = bot['misc']
     buttons = misc.buttons
+    texts = misc.texts['admin_texts']
 
     await GetMailing.mailing.set()
-    await message.answer('Скиньте сюда пост, который хотите всем разослать',
+    await message.answer(texts['add_mailing__post'],
                          reply_markup=inline.cancel(buttons, 'cancel:mailing'))
 
 
-async def set_mailing_time(message: Message, state: FSMContext):
+async def add_mailing_post(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
     misc = bot['misc']
     buttons = misc.buttons
-
-    bot['mailing']['date'] = None
-
-    try:
-        if message.text.lower() == 'сейчас' or message.text.lower() == 'now':
-            await mailing_add(message, state)
-            await state.finish()
-            return
-
-        date = datetime.datetime.strptime(message.text, "%H:%M %d.%m.%Y")
-        if date < datetime.datetime.now():
-            raise ValueError('Некорректная дата')
-
-        bot['mailing']['date'] = date
-        await mailing_add(message, state)
-
-    except Exception as e:
-        print(e)
-        await message.answer('Неверно заданное время.\nВведите время в формате: '
-                             '<b>часы:минуты день.месяц.год</b>\nЛибо введите "сейчас"/"now" , чтобы '
-                             'рассылка началась прямо сейчас', reply_markup=inline.cancel(buttons, 'cancel:mailing'))
-        return
-
-    await state.finish()
-
-
-async def set_mailing_post(message: Message, state: FSMContext):
-    bot = message.bot
-    data: Database = bot['db']
-    misc = bot['misc']
-    buttons = misc.buttons
+    texts = misc.texts['admin_texts']
 
     post_message_id = message.message_id
 
@@ -96,21 +69,44 @@ async def set_mailing_post(message: Message, state: FSMContext):
     details = get_details(message)
     bot['mailing'] = {'post_message_id': post_message_id, 'markup': markup, 'details': details}
     await GetMailing.set_time.set()
-    await message.answer(
-        'Введите время в формате: <b>часы:минуты день.месяц.год</b>\nПример: 18:01 08.11.2022\n\nЛибо введите'
-        ' "сейчас" или "now" , чтобы '
-        'рассылка началась прямо сейчас', reply_markup=inline.cancel(buttons, 'cancel:mailing'))
-
-    # await data.add_mailing(message.chat.id, post_message_id, markup, details)
-    # await message.answer('Рассылка началась!')
-    # await state.finish()
+    await message.answer(texts['add_mailing__time'], reply_markup=inline.cancel(buttons, 'cancel:mailing'))
 
 
-async def mailing_add(message: Message, state: FSMContext):
+async def add_mailing_time(message: Message, state: FSMContext):
+    bot = message.bot
+    misc = bot['misc']
+    buttons = misc.buttons
+    texts = misc.texts['admin_texts']
+
+    bot['mailing']['date'] = None
+
+    try:
+        if message.text.lower() == 'сейчас' or message.text.lower() == 'now':
+            await add_mailing(message, state)
+            await state.finish()
+            return
+
+        date = datetime.datetime.strptime(message.text, "%H:%M %d.%m.%Y")
+        if date < datetime.datetime.now():
+            raise ValueError()
+
+        bot['mailing']['date'] = date
+        await add_mailing(message, state)
+
+    except Exception as e:
+        print(e)
+        await message.answer(texts['add_mailing__time_uncorrected'],
+                             reply_markup=inline.cancel(buttons, 'cancel:mailing'))
+        return
+
+    await state.finish()
+
+
+async def add_mailing(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
     misc = bot['misc']
-    buttons = misc.buttons
+    texts = misc.texts['admin_texts']
 
     post_message_id, markup, details = bot['mailing']['post_message_id'], \
                                        bot['mailing']['markup'], bot['mailing']['details']
@@ -122,18 +118,18 @@ async def mailing_add(message: Message, state: FSMContext):
         await get_mailing(message, mailing)
     else:
         await data.set_active_mailing(mailing['message_id'], True)
-        await message.answer('Рассылка началась')
+        await message.answer(texts['mailing__start'])
 
 
-def get_mail_plan(date) -> str:
+def get_mail_plan(date, texts) -> str:
     days = (date - datetime.datetime.now()).days
     seconds = (date - datetime.datetime.now()).seconds
 
     hours = seconds // 3600
     minutes = (seconds - (hours * 3600)) // 60
     if (hours + days * 24) < 0:
-        return 'Рассылка в очереди'
-    return f'Рассылка запланирована через {hours + days * 24} часов {minutes} минут!'
+        return texts['mailing__queue']
+    return texts['get_mailing__plan'].format(hours + days * 24, minutes)
 
 
 async def send_message_copy(bot, user_id, from_chat_id, message_id, markup):
@@ -178,7 +174,7 @@ async def send_second_method(bot, user_id, details, markup):
 async def mailing_controller(bot, delay):
     data: Database = bot['db']
     misc = bot['misc']
-    texts = misc.texts
+    texts = misc.texts['admin_texts']
     admins = bot['config'].tg_bot.admin_ids
     while True:
         await asyncio.sleep(delay)
@@ -260,6 +256,8 @@ async def cancel(call: CallbackQuery, state: FSMContext):
     message = call.message
     bot = message.bot
     data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
     detail = call.data.split(':')[1]
     message.from_user.id = call['from']['id']
 
@@ -269,7 +267,7 @@ async def cancel(call: CallbackQuery, state: FSMContext):
     elif detail.split('-')[0] == 'mailing2':
         message_id = int(detail.split('-')[1])
         await data.del_mailing(message_id)
-        await message.answer('Рассылка удалена')
+        await message.answer(texts['del_mailing__success'])
         await message.edit_reply_markup(reply_markup=None)
     await bot.answer_callback_query(call.id)
 
@@ -277,9 +275,9 @@ async def cancel(call: CallbackQuery, state: FSMContext):
 def register_mailing(dp: Dispatcher):
     dp.register_message_handler(get_mailing, commands=["mailing"], state="*", is_admin=True)
     dp.register_message_handler(get_mailings, commands=["mailings"], state="*", is_admin=True)
-    dp.register_message_handler(add_mailing, commands=["add_mailing"], state="*", is_admin=True)
-    dp.register_message_handler(set_mailing_post, state=GetMailing.mailing, content_types=ContentTypes.ANY)
-    dp.register_message_handler(set_mailing_time, state=GetMailing.set_time, content_types=ContentTypes.ANY)
+    dp.register_message_handler(add_mailing_start, commands=["add_mailing"], state="*", is_admin=True)
+    dp.register_message_handler(add_mailing_post, state=GetMailing.mailing, content_types=ContentTypes.ANY)
+    dp.register_message_handler(add_mailing_time, state=GetMailing.set_time, content_types=ContentTypes.ANY)
 
     dp.register_callback_query_handler(cancel, state="*", text_contains='cancel:')
 

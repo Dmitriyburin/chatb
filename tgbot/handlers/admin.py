@@ -62,11 +62,11 @@ async def get_channels(message: Message):
 
     channels = []
     for index, item in enumerate(await data.get_channels()):
-        channels.append(texts['get_channel__one'].format(index + 1, item['link'], item['link']))
+        channels.append(texts['get_channels__one'].format(index + 1, item['link'], item['link']))
     if channels:
         await message.answer('\n'.join(channels), disable_web_page_preview=True)
     else:
-        await message.answer(texts['get_channel__not'])
+        await message.answer(texts['get_channels__not'])
 
 
 async def del_channel_start(message: Message):
