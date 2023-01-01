@@ -1,5 +1,6 @@
 aiogram~=2.18
 aioredis<2.0
+redis
 captcha>=0.4
 environs~=9.0
 PyYAML>=6.0

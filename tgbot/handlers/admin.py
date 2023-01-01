@@ -99,7 +99,7 @@ async def users_file(message: Message):
 
     fname = 'users.txt'
     with open(fname, 'w') as file:
-        async for user in await data.get_users():
+        for user in await data.get_users():
             file.write(str(user['user_id']) + '\n')
 
     await message.answer_document(open(fname, 'rb'))

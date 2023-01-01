@@ -16,7 +16,7 @@ async def payments_controller(bot, delay):
         await asyncio.sleep(delay)
 
         ungived = await data.get_ungiven_payments()
-        async for i in ungived:
+        for i in ungived:
             price = i['price']
             action = i['action']
 
