@@ -9,8 +9,8 @@ class Redis:
         self.r = aioredis.from_url(connection_string)
 
     async def get_captcha(self, user_id: int) -> dict | bool:
-        elements = list(await self.r.smembers('captcha'))
-        for i in elements:
+        generator_captcha = self.r.sscan_iter("captcha")
+        async for i in generator_captcha:
             captcha = json.loads(i)
             if captcha['user_id'] == user_id:
                 return captcha
@@ -34,8 +34,8 @@ class Redis:
 
 async def main():
     redis = Redis()
-    # await redis.add_captcha(54321, '194234длоапывд')
-    print(await redis.delete_captcha(54321))
+    await redis.add_or_update_captcha(12313, '12313')
+    # print(await redis.delete_captcha(12313))
 
 
 if __name__ == '__main__':
