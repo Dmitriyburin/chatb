@@ -11,6 +11,7 @@ class DbConfig:
     user: str
     database: str
     string_connection_mongodb: str
+    string_connection_redis: str
 
 
 @dataclass
@@ -58,7 +59,8 @@ def load_config(path: str = None):
                 password=env.str('DB_PASS'),
                 user=env.str('DB_USER'),
                 database=env.str('DB_NAME'),
-                string_connection_mongodb=env.str('STRING_CONNECTION_MONGODB')
+                string_connection_mongodb=env.str('STRING_CONNECTION_MONGODB'),
+                string_connection_redis=env.str('STRING_CONNECTION_REDIS')
             ),
             misc=Miscellaneous(
                 texts=conf['texts'],

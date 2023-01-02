@@ -158,33 +158,6 @@ texts:
     <b>⛔️ Вы заблокированы на {0} час {1} минут за подозрительную
     активность по многочисленным жалобам пользователей бота</b>
 prices:
-  1:
-    days: !!int 1
-    price: !!int 79
-    discount: !!int 49
-    button: 24 часа - {0} ₽
-    description: vip_1_day
-  7:
-    days: !!int 7
-    price: !!int 149
-    discount: !!int 99
-    button: 7 дней - {0} ₽
-    description: vip_7_day
-  30:
-    days: !!int 30
-    price: !!int 179
-    discount: !!int 129
-    button: Месяц - {0} ₽
-    description: vip_30_day
-  forever:
-    days: forever
-    price: !!int 499
-    discount: !!int 299
-    button: Навсегда - {0} ₽
-    description: vip_forever
-  reset_react:
-    price: !!int 19
-    description: reset_react
   unban:
     price: !!int 79
     description: unban

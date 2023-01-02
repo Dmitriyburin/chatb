@@ -57,7 +57,7 @@ class BigFatherMiddleware(BaseMiddleware):
                 url = anypay.gen_url(price, payment_id, value['description'], sign, anypay_shop=anypay_shop)
 
                 await bot_data.add_anypay_payment(message.from_user.id, sign, secret, payment_id,
-                                                              price=price, action='unban')
+                                                  price=price, action='unban')
 
                 if banned_user['date']:
                     current_time = datetime.datetime.now()
@@ -76,10 +76,11 @@ class BigFatherMiddleware(BaseMiddleware):
                     raise CancelHandler()
 
         # Captcha
-        if bot.get(message.from_user.id) and bot[message.from_user.id].get('captcha_text'):
-            if message.text == bot[message.from_user.id].get('captcha_text'):
+        redis: Redis = bot['redis']
+        if await redis.get_captcha(message.from_user.id):
+            if message.text == await redis.get_captcha_text(message.from_user.id):
                 await message.answer('Вы разблокированы!')
-                bot[message.from_user.id] = {}
+                await redis.delete_captcha(message.from_user.id)
             else:
                 await generate_captcha(bot, message)
             raise CancelHandler()
@@ -164,12 +165,22 @@ def wrap_media(bytesio, **kwargs):
 
 
 async def generate_captcha(bot, message, edit=False):
-    print('asdfas')
     image = ImageCaptcha(width=250, height=100)
-    nums = list([str(i) for i in range(0, 10)])
+    nums = list([str(i) for i in list(range(0, 7)) + list(range(8, 10))])
     random.shuffle(nums)
     captcha_text = ''.join(nums[:4])
     data = image.generate(captcha_text)
-    bot[message.from_user.id] = {'captcha_text': ''.join(captcha_text)}
+
+    redis: Redis = bot['redis']
+    await redis.add_or_update_captcha(message.from_user.id, captcha_text)
 
     await message.answer_photo(data, caption='Введите текст с картинки')
+
+
+if __name__ == '__main__':
+    from ..misc.functions import generate_start_ref
+    from ..models.database import Database
+    from ..models.redis import Redis
+    from ..config import load_config
+
+    config = load_config("../../.env")

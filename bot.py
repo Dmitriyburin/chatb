@@ -6,6 +6,7 @@ from aiogram import executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from tgbot.models.database import Database
+from tgbot.models.redis import Redis
 
 from tgbot.config import load_config
 from tgbot.filters.admin import AdminFilter
@@ -45,6 +46,11 @@ def create_database(config_db):
     return database
 
 
+def create_redis(config_db):
+    redis = Redis(config_db.string_connection_redis)
+    return redis
+
+
 def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -61,6 +67,7 @@ def main():
     bot['config'] = config
     bot['misc'] = config.misc
     bot['db'] = create_database(config.db)
+    bot['redis'] = create_redis(config.db)
 
     db: Database = bot['db']
     loop.run_until_complete(db.create_stats_if_not_exist())
