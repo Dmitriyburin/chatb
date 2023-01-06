@@ -1,6 +1,7 @@
 import asyncio
 
 import datetime
+import logging
 import random
 
 from captcha.image import ImageCaptcha
@@ -36,7 +37,12 @@ class BigFatherMiddleware(BaseMiddleware):
         else:
             return
 
-        bot_data = bot['db']
+        bot_data: Database = bot['db']
+        if message.chat.type in [types.ChatType.SUPERGROUP, types.ChatType.GROUP]:
+            await bot_data.add_chat_if_not_exists(message.chat.id)
+            await bot_data.add_user_if_not_exists(message.chat.id, message.from_user.id)
+        if message.chat.type != types.ChatType.PRIVATE:
+            return
         misc = bot['misc']
         texts = misc.texts
 

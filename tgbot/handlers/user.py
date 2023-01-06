@@ -2,6 +2,8 @@ from aiogram import Dispatcher
 from aiogram.types import Message
 from tgbot.keyboards import reply
 from tgbot.handlers.channels import check_sub, required_channel
+from tgbot.handlers.chat import get_nickname
+from tgbot.handlers.chat import get_actions, get_relation_dict, get_user_relations
 
 
 async def user_start(message: Message):
@@ -12,15 +14,30 @@ async def user_start(message: Message):
     buttons = misc.buttons
 
     user = await data.get_user(message.from_user.id)
-    ref = None if message.text == '/start' else message.text.split()[1]
-    if await data.get_is_ref_commercial(ref):
+    ref = None
+    if len(message.text.split()) > 1:
+        if 'actions' in message.text.split()[1]:
+            hp = int(message.text.split()[1].split('_')[1])
+            free = message.text.split()[1].split('_')[2]
+            free = True if free == 't' else False
+            desc = get_relation_dict(misc, hp)['description']
+            await message.answer(f'{desc}\n\n{get_actions(misc, hp, free=free)}')
+        elif 'relations' in message.text.split()[1]:
+            chat_id = int(message.text.split()[1].split('_')[1])
+            relations = await get_user_relations(message, chat_id=chat_id)
+            await message.answer(relations)
+
+        else:
+            ref = message.text.split()[1]
+
+    if ref and await data.get_is_ref_commercial(ref):
         await data.increment_ref_transition(ref)
 
     if not user:
         await data.add_user(message.from_user.id, ref)
-        await message.reply(texts['start_text'], reply_markup=reply.main(buttons))
-    else:
-        await message.reply(texts['start_text'], reply_markup=reply.main(buttons))
+
+    await message.reply(texts['start_text'].format(await get_nickname(message.from_user)),
+                        reply_markup=reply.main(buttons))
 
     white_list = bot['config'].tg_bot.admin_ids
     user = await data.get_user(message.from_user.id)
@@ -31,4 +48,4 @@ async def user_start(message: Message):
 
 
 def register_user(dp: Dispatcher):
-    dp.register_message_handler(user_start, commands=["start"], state="*")
+    dp.register_message_handler(user_start, commands=["start"], state="*", is_private=True)

@@ -1,3 +1,6 @@
+import json
+import pickle
+
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardButton, \
     InlineKeyboardMarkup, ForceReply
 
@@ -14,7 +17,7 @@ def back_button(callback_data):
 
 def cancel(btns, callback_data):
     markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton('Отмена', callback_data=callback_data))
+    markup.add(InlineKeyboardButton(btns['cancel'], callback_data=callback_data))
     return markup
 
 
@@ -86,5 +89,73 @@ def unban(url):
     return markup
 
 
-if __name__ == '__main__':
-    print(aa().to_python())
+def accept_or_refuse_relation(btns, user_sender, user_receiver):
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton(btns['accept_relation'],
+                             callback_data=f'relation:{user_sender}:{user_receiver}:accept'),
+        InlineKeyboardButton(btns['refuse_relation'],
+                             callback_data=f'relation:{user_sender}:{user_receiver}:refuse'))
+    return markup
+
+
+def accept_or_refuse_delete_relation(btns, user_sender, user_receiver):
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton(btns['accept_delete_relation'],
+                             callback_data=f'relation:{user_sender}:{user_receiver}:accept_delete'),
+        InlineKeyboardButton(btns['refuse_delete_relation'],
+                             callback_data=f'relation:{user_sender}:{user_receiver}:refuse_delete'))
+    return markup
+
+
+def go_to_link(btns, link):
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(btns['go_to_link'], url=link))
+    return markup
+
+
+def go_to_ls(btns, link):
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(btns['go_to_ls'], url=link))
+    return markup
+
+
+def accept_or_wait_make_action_for_money(btns, user_sender, user_receiver, num_of_action):
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton(btns['accept_make_action_for_money'],
+                             callback_data=f'action:{user_sender}:{user_receiver}:{num_of_action}:accept_make'),
+        InlineKeyboardButton(btns['wait_to_make_action_for_money'],
+                             callback_data=f'action:{user_sender}:{user_receiver}:{num_of_action}:wait_make'))
+    return markup
+
+
+def edit_description(btns, user_id):
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(btns['edit_description'], callback_data=f'description:{user_id}:edit'))
+    return markup
+
+
+def list_relations_ls(btns, user_id, link):
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton(btns['go_to_link'], url=link),
+        InlineKeyboardButton(btns['list_to_chat'],
+                             callback_data=f'list_to_chat:{user_id}'))
+    return markup
+
+
+def done(btns, callback):
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton(btns['done'], callback_data=callback))
+    return markup
+
+
+def choose_top_relations(btns, chat_id):
+    markup = InlineKeyboardMarkup()
+    markup.row(
+        InlineKeyboardButton(btns['fortress'], callback_data=f'top_relations:{chat_id}:fortress'),
+        InlineKeyboardButton(btns['duration'],
+                             callback_data=f'top_relations:{chat_id}:duration'))
+    return markup

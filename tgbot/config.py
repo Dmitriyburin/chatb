@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pprint import pprint
 from typing import TypedDict
 from environs import Env
 from yaml import safe_load
@@ -34,6 +35,8 @@ class Miscellaneous:
     prices: dict
     anypay: Anypay
     payment_token: str
+    relations: dict
+    commands: dict
 
 
 @dataclass
@@ -69,6 +72,14 @@ def load_config(path: str = None):
                 anypay=Anypay(
                     secret=env.str('ANYPAY_SECRET'),
                     shop=env.str('ANYPAY_SHOP')),
-                payment_token=env.str('PAYMENT_TOKEN')
+                payment_token=env.str('PAYMENT_TOKEN'),
+                relations=conf['relations'],
+                commands=conf['commands']
             ),
         )
+
+
+if __name__ == '__main__':
+    with open('./config.yaml', encoding='utf-8') as f:
+        conf = safe_load(f)
+        pprint(conf['commands'])

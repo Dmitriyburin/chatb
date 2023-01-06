@@ -359,37 +359,44 @@ async def unban_user(message: Message, state: FSMContext):
     await state.finish()
 
 
+async def finish_state(message: Message, state: FSMContext):
+    await state.finish()
+    await message.answer('Состояние удалено')
+
+
 def register_admin(dp: Dispatcher):
-    dp.register_message_handler(admin_main, commands=["admin"], state="*", is_admin=True)
-    dp.register_message_handler(add_channel_start, commands=["add_sub"], state="*", is_admin=True)
-    dp.register_message_handler(add_channel, state=AddChannel.channel, is_admin=True)
-    dp.register_message_handler(add_link_channel, state=AddChannel.link, is_admin=True)
+    dp.register_message_handler(admin_main, commands=["admin"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(add_channel_start, commands=["add_sub"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(add_channel, state=AddChannel.channel, is_admin=True, is_private=True)
+    dp.register_message_handler(add_link_channel, state=AddChannel.link, is_admin=True, is_private=True)
 
-    dp.register_message_handler(del_channel_start, commands=["del_sub"], state="*", is_admin=True)
-    dp.register_message_handler(del_channel, state=DeleteChannel.channel, is_admin=True)
+    dp.register_message_handler(del_channel_start, commands=["del_sub"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(del_channel, state=DeleteChannel.channel, is_admin=True, is_private=True)
 
-    dp.register_message_handler(get_channels, commands=["channels"], state="*", is_admin=True)
-    dp.register_message_handler(users_file, commands=["users"], state="*", is_admin=True)
-    dp.register_message_handler(stats, commands=["stats"], state="*", is_admin=True)
+    dp.register_message_handler(get_channels, commands=["channels"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(users_file, commands=["users"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(stats, commands=["stats"], state="*", is_admin=True, is_private=True)
 
-    dp.register_message_handler(add_ref_start, commands=["add_ref"], state="*", is_admin=True)
-    dp.register_message_handler(add_ref_date, state=AddRef.date, is_admin=True)
-    dp.register_message_handler(add_ref_contact, state=AddRef.contact, is_admin=True)
-    dp.register_message_handler(add_ref, state=AddRef.price, is_admin=True)
-    dp.register_message_handler(del_ref_start, commands=["del_ref"], state="*", is_admin=True)
-    dp.register_message_handler(del_ref, state=DeleteRef.ref, is_admin=True)
-    dp.register_message_handler(get_refs, commands=["refs"], state="*", is_admin=True)
+    dp.register_message_handler(add_ref_start, commands=["add_ref"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(add_ref_date, state=AddRef.date, is_admin=True, is_private=True)
+    dp.register_message_handler(add_ref_contact, state=AddRef.contact, is_admin=True, is_private=True)
+    dp.register_message_handler(add_ref, state=AddRef.price, is_admin=True, is_private=True)
+    dp.register_message_handler(del_ref_start, commands=["del_ref"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(del_ref, state=DeleteRef.ref, is_admin=True, is_private=True)
+    dp.register_message_handler(get_refs, commands=["refs"], state="*", is_admin=True, is_private=True)
     dp.register_callback_query_handler(month_callback, state=RefsMonth.month_callback,
                                        text_contains='month:',
-                                       is_admin=True)
-    dp.register_message_handler(ref_stats_start, commands=["ref_stats"], state="*", is_admin=True)
-    dp.register_message_handler(ref_stats, state=StatsRef.ref, is_admin=True)
+                                       is_admin=True, is_private=True)
+    dp.register_message_handler(ref_stats_start, commands=["ref_stats"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(ref_stats, state=StatsRef.ref, is_admin=True, is_private=True)
 
-    dp.register_message_handler(ban_user_start, commands=["ban"], state="*", is_admin=True)
-    dp.register_message_handler(ban_user, state=BanUser.user_id, is_admin=True)
+    dp.register_message_handler(ban_user_start, commands=["ban"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(ban_user, state=BanUser.user_id, is_admin=True, is_private=True)
 
-    dp.register_message_handler(unban_user_start, commands=["unban"], state="*", is_admin=True)
-    dp.register_message_handler(unban_user, state=UnbanUser.user_id, is_admin=True)
+    dp.register_message_handler(unban_user_start, commands=["unban"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(unban_user, state=UnbanUser.user_id, is_admin=True, is_private=True)
+
+    dp.register_message_handler(finish_state, commands=["finish_state"], is_admin=True)
 
 
 if __name__ == '__main__':

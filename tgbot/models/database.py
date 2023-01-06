@@ -1,5 +1,6 @@
 import datetime
 import time
+import heapq
 
 from motor import motor_asyncio
 import asyncio
@@ -10,9 +11,10 @@ from pymongo import DeleteOne
 class Database:
     def __init__(self, connection_mongodb):
         self.cluster = motor_asyncio.AsyncIOMotorClient(connection_mongodb)
-        self.db = self.cluster.newtemplate
+        self.db = self.cluster.relation_chat_bot
         self.users = self.db.users
         self.ref_links = self.db.ref_links
+        self.chats = self.db.chats
         self.channels = self.db.channels
         self.mailing = self.db.mailing
         self.mailing_users = self.db.mailing_users
@@ -187,12 +189,123 @@ class Database:
     async def increment_users_count_stats(self) -> None:
         await self.stats.update_one({'stats': 'all'}, {'$inc': {'users_count': 1}})
 
+    # Chat
+    async def add_chat_user(self, chat_id: int, user_id: int) -> None:
+        time_registration = datetime.datetime.now().timestamp()
+        user = {'user_id': user_id, 'coins': 0, 'time_registration': time_registration, 'description': '-',
+                'time_last_farm': None, 'hours_to_next_farm': 4, 'main_relation': None}
+        await self.chats.update_one({'chat_id': chat_id}, {'$push': {'users': user}})
+
+    async def add_user_if_not_exists(self, chat_id: int, user_id: int) -> None:
+        user = await self.get_chat_user(chat_id, user_id)
+        if not user:
+            await self.add_chat_user(chat_id, user_id)
+
+    async def get_chat_user(self, chat_id: int, user_id: int) -> dict | bool:
+        users_chat = (await self.get_chat(chat_id))['users']
+        for user in users_chat:
+            if user['user_id'] == user_id:
+                return user
+
+    async def add_chat(self, chat_id: int) -> None:
+        await self.chats.insert_one(
+            {'chat_id': chat_id, 'users': [], 'relations': []})
+
+    async def get_chat(self, chat_id: int) -> dict | bool:
+        return await self.chats.find_one({'chat_id': chat_id})
+
+    async def add_chat_if_not_exists(self, chat_id: int):
+        if not await self.get_chat(chat_id):
+            await self.add_chat(chat_id)
+
+    async def add_relation(self, chat_id: int, user1_id: int, user2_id: int) -> None:
+        if not await self.get_chat_user(chat_id, user1_id):
+            await self.add_chat_user(chat_id, user1_id)
+
+        if not await self.get_chat_user(chat_id, user2_id):
+            await self.add_chat_user(chat_id, user2_id)
+        time_registration = datetime.datetime.now().timestamp()
+        relation = {'users': [user1_id, user2_id], 'hp': 0,
+                    'time_registration': time_registration, 'time_to_next_action': None}
+        await self.chats.update_one({'chat_id': chat_id}, {'$push': {'relations': relation}})
+
+    async def delete_relation(self, chat_id: int, user1_id: int, user2_id: int) -> None:
+        relations = (await self.get_chat(chat_id))['relations']
+        for i, relation in enumerate(relations):
+            if set(relation['users']) == {user1_id, user2_id}:
+                await self.chats.update_one({'chat_id': chat_id}, {'$pop': {'relations': -(i + 1)}})
+
+    async def get_relation(self, chat_id: int, user1_id: int, user2_id: int) -> dict | bool:
+        relations = (await self.get_chat(chat_id))['relations']
+        for relation in relations:
+            if set(relation['users']) == {user1_id, user2_id}:
+                return relation
+
+    async def get_best_hp_relations(self, chat_id: int, count=10):
+        relations_iter = iter((await self.get_chat(chat_id))['relations'])
+        return heapq.nlargest(count, relations_iter, key=lambda x: x['hp'])
+
+    async def get_best_time_relations(self, chat_id: int, count=10):
+        relations_iter = iter((await self.get_chat(chat_id))['relations'])
+        return heapq.nsmallest(count, relations_iter, key=lambda x: x['time_registration'])
+
+    async def get_main_relation(self, chat_id: int, user_id: int) -> dict | bool:
+        return (await self.get_chat_user(chat_id, user_id))['main_relation']
+
+    async def get_user_relations(self, chat_id: int, user_id: int) -> list | bool:
+        relations = (await self.get_chat(chat_id))['relations']
+        return [relation for relation in relations if user_id in relation['users']]
+
+    async def edit_main_relation(self, chat_id: int, user1_id: int, user2_id: int | None) -> None:
+        await self.chats.update_one(
+            {'chat_id': chat_id, 'users.user_id': user1_id},
+            {'$set': {'users.$.main_relation': user2_id}})
+
+    async def edit_description(self, chat_id: int, user_id: int, description: str) -> None:
+        await self.chats.update_one(
+            {'chat_id': chat_id, 'users.user_id': user_id},
+            {'$set': {'users.$.description': description}})
+
+    async def edit_time_last_farm(self, chat_id: int, user_id: int) -> None:
+        await self.chats.update_one(
+            {'chat_id': chat_id, 'users.user_id': user_id},
+            {'$set': {'users.$.time_last_farm': datetime.datetime.now().timestamp()}})
+
+    async def make_action(self, chat_id: int, user1_id: int, user2_id: int, hp: int, delta_to_next_action: int,
+                          free=True, coins=0):
+        if free:
+            time_to_next_action = (
+                    datetime.datetime.now() + datetime.timedelta(minutes=delta_to_next_action)).timestamp()
+            await self.chats.update_one({'chat_id': chat_id, 'relations.users': [user1_id, user2_id]},
+                                        {'$inc': {'relations.$.hp': hp},
+                                         '$set': {'relations.$.time_to_next_action': time_to_next_action}})
+
+            await self.chats.update_one({'chat_id': chat_id, 'relations.users': [user2_id, user1_id]},
+                                        {'$inc': {'relations.$.hp': hp},
+                                         '$set': {'relations.$.time_to_next_action': time_to_next_action}})
+        else:
+            await self.chats.update_one({'chat_id': chat_id, 'relations.users': [user1_id, user2_id]},
+                                        {'$inc': {'relations.$.hp': hp}})
+
+            await self.chats.update_one({'chat_id': chat_id, 'relations.users': [user2_id, user1_id]},
+                                        {'$inc': {'relations.$.hp': hp}})
+            await self._decrease_coins(chat_id, user1_id, coins)
+
+    # async def _increment_relation_hp(self, chat_id: int, user1_id: int, user2_id: int, hp: int):
+    async def _decrease_coins(self, chat_id: int, user_id: int, coins: int) -> None:
+        await self.chats.update_one(
+            {'chat_id': chat_id, 'users.user_id': user_id},
+            {'$inc': {'users.$.coins': -coins}})
+
+    async def increase_coins(self, chat_id: int, user_id: int, coins: int) -> None:
+        await self.chats.update_one(
+            {'chat_id': chat_id, 'users.user_id': user_id},
+            {'$inc': {'users.$.coins': coins}})
+
 
 async def main():
     database = Database('mongodb://localhost:27017')
-    abc = await database.get_ungiven_payments()
-    print(abc.__class__)
-    print(abc)
+    print(await database.get_best_time_relations(-1001818890741, count=1))
 
 
 if __name__ == '__main__':

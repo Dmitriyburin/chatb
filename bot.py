@@ -10,9 +10,14 @@ from tgbot.models.redis import Redis
 
 from tgbot.config import load_config
 from tgbot.filters.admin import AdminFilter
+from tgbot.filters.private import PrivateFilter
+from tgbot.filters.group import GroupFilter
 from tgbot.handlers.admin import register_admin
 from tgbot.handlers.echo import register_echo
 from tgbot.handlers.user import register_user
+from tgbot.handlers.chat import register_chat
+from tgbot.handlers.add_to_chat import register_add_to_chat
+
 from tgbot.handlers.payment_system import payments_controller
 from tgbot.handlers.mailing import mailing_controller
 from tgbot.handlers.channels import register_channels
@@ -30,11 +35,15 @@ def register_all_middlewares(dp, config):
 
 def register_all_filters(dp):
     dp.filters_factory.bind(AdminFilter)
+    dp.filters_factory.bind(PrivateFilter)
+    dp.filters_factory.bind(GroupFilter)
 
 
 def register_all_handlers(dp):
     register_admin(dp)
     register_user(dp)
+    register_chat(dp)
+    register_add_to_chat(dp)
     register_channels(dp)
     register_mailing(dp)
 

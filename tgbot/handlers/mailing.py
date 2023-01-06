@@ -273,11 +273,13 @@ async def cancel(call: CallbackQuery, state: FSMContext):
 
 
 def register_mailing(dp: Dispatcher):
-    dp.register_message_handler(get_mailing, commands=["mailing"], state="*", is_admin=True)
-    dp.register_message_handler(get_mailings, commands=["mailings"], state="*", is_admin=True)
+    dp.register_message_handler(get_mailing, commands=["mailing"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(get_mailings, commands=["mailings"], state="*", is_admin=True, is_private=True)
     dp.register_message_handler(add_mailing_start, commands=["add_mailing"], state="*", is_admin=True)
-    dp.register_message_handler(add_mailing_post, state=GetMailing.mailing, content_types=ContentTypes.ANY)
-    dp.register_message_handler(add_mailing_time, state=GetMailing.set_time, content_types=ContentTypes.ANY)
+    dp.register_message_handler(add_mailing_post, state=GetMailing.mailing, content_types=ContentTypes.ANY,
+                                is_private=True)
+    dp.register_message_handler(add_mailing_time, state=GetMailing.set_time, content_types=ContentTypes.ANY,
+                                is_private=True)
 
     dp.register_callback_query_handler(cancel, state="*", text_contains='cancel:')
 

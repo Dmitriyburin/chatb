@@ -47,3 +47,7 @@ class RequiredChannel(StatesGroup):
 
 class Captcha(StatesGroup):
     enter_captcha = State()
+
+
+class EditDescription(StatesGroup):
+    description = State()

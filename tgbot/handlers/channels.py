@@ -74,8 +74,8 @@ async def check_sub_call(call: CallbackQuery, state: FSMContext):
 
 
 def register_channels(dp: Dispatcher):
-    dp.register_callback_query_handler(check_sub_call, text_contains='check_sub_call', state='*')
-    dp.register_message_handler(required_channel, state=RequiredChannel.required_channel)
+    dp.register_callback_query_handler(check_sub_call, text_contains='check_sub_call', state='*', is_private=True)
+    dp.register_message_handler(required_channel, state=RequiredChannel.required_channel, is_private=True)
 
 
 if __name__ == '__main__':
