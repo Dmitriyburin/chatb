@@ -1,4 +1,5 @@
 import logging
+import asyncio
 
 from aiogram import Dispatcher
 from aiogram.types import Message, CallbackQuery
@@ -27,7 +28,8 @@ async def check_sub(message):
     channels_links = []
     for channel in channels:
         chat_id = channel['channel_id']
-
+        if channel.get('is_main'):
+            continue
         try:
             user_channel = await bot.get_chat_member(chat_id=f'{chat_id}', user_id=message.from_user.id)
             if user_channel.status not in ['member', 'administrator', 'creator']:
@@ -66,11 +68,44 @@ async def check_sub_call(call: CallbackQuery, state: FSMContext):
             await message.delete()
             await message.answer(texts['sponsor__success'])
             await state.finish()
+            user_db = await data.get_user(message.from_user.id)
+            if user_db['ref']:
+                await data.add_user_channel_to_ref_if_not_exists(user_db['ref'], user_db['user_id'])
 
         else:
             await call.answer(texts['sponsor__not'])
+    elif detail == 'main_channel':
+        main_channel = await data.get_main_channel()
+        user_channel = await bot.get_chat_member(chat_id=main_channel['channel_id'], user_id=message.from_user.id)
+        if user_channel.status not in ['member', 'administrator', 'creator']:
+            await message.answer(texts['main_channel__not_subscribe'])
+        else:
+            await data.set_hours_for_next_time(message.from_user.id, 3)
+            await message.answer(texts['main_channel__success_subscribe'])
+            await message.delete()
 
     await bot.answer_callback_query(call.id)
+
+
+async def main_channel_controller(bot, delay):
+    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts
+
+    while True:
+        await asyncio.sleep(delay)
+
+        users_chats = await data.get_3_hours_farm_users_chats()
+        main_channel = await data.get_main_channel()
+        if not main_channel:
+            continue
+
+        async for user in users_chats:
+            user_channel = await bot.get_chat_member(chat_id=main_channel['channel_id'],
+                                                     user_id=user['user_id'])
+            if user_channel.status not in ['member', 'administrator', 'creator']:
+                await data.set_hours_for_next_time(user['user_id'], 4)
+                await bot.send_message(user['user_id'], texts['main_channel__unsubscribe'])
 
 
 def register_channels(dp: Dispatcher):

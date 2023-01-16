@@ -1,5 +1,7 @@
 import asyncio
 import datetime
+import json
+import logging
 
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
@@ -54,6 +56,18 @@ async def add_mailing_start(message: Message, state: FSMContext):
                          reply_markup=inline.cancel(buttons, 'cancel:mailing'))
 
 
+async def add_group_mailing_start(message: Message, state: FSMContext):
+    bot = message.bot
+    misc = bot['misc']
+    buttons = misc.buttons
+    texts = misc.texts['admin_texts']
+
+    await GetMailing.mailing.set()
+    await state.update_data(is_group=True)
+    await message.answer(texts['add_mailing__post'],
+                         reply_markup=inline.cancel(buttons, 'cancel:mailing'))
+
+
 async def add_mailing_post(message: Message, state: FSMContext):
     bot = message.bot
     data: Database = bot['db']
@@ -67,7 +81,8 @@ async def add_mailing_post(message: Message, state: FSMContext):
     if message.reply_markup:
         markup = message.reply_markup.as_json()
     details = get_details(message)
-    bot['mailing'] = {'post_message_id': post_message_id, 'markup': markup, 'details': details}
+    await state.update_data(
+        mailing=json.dumps({'post_message_id': post_message_id, 'markup': markup, 'details': details}))
     await GetMailing.set_time.set()
     await message.answer(texts['add_mailing__time'], reply_markup=inline.cancel(buttons, 'cancel:mailing'))
 
@@ -78,28 +93,23 @@ async def add_mailing_time(message: Message, state: FSMContext):
     buttons = misc.buttons
     texts = misc.texts['admin_texts']
 
-    bot['mailing']['date'] = None
-
     try:
         if message.text.lower() == 'сейчас' or message.text.lower() == 'now':
             await add_mailing(message, state)
-            await state.finish()
             return
 
         date = datetime.datetime.strptime(message.text, "%H:%M %d.%m.%Y")
         if date < datetime.datetime.now():
             raise ValueError()
 
-        bot['mailing']['date'] = date
+        await state.update_data(date=date.timestamp())
         await add_mailing(message, state)
 
     except Exception as e:
-        print(e)
+        logging.info(e)
         await message.answer(texts['add_mailing__time_uncorrected'],
                              reply_markup=inline.cancel(buttons, 'cancel:mailing'))
         return
-
-    await state.finish()
 
 
 async def add_mailing(message: Message, state: FSMContext):
@@ -108,17 +118,23 @@ async def add_mailing(message: Message, state: FSMContext):
     misc = bot['misc']
     texts = misc.texts['admin_texts']
 
-    post_message_id, markup, details = bot['mailing']['post_message_id'], \
-                                       bot['mailing']['markup'], bot['mailing']['details']
-    date = bot['mailing']['date']
-    await data.add_mailing(message.chat.id, post_message_id, markup, details, date)
+    state_date = await state.get_data()
+    logging.info(state_date)
+    mailing = json.loads(state_date['mailing'])
+    post_message_id, markup, details, is_group = mailing['post_message_id'], mailing['markup'], \
+                                                 mailing['details'], state_date['is_group']
+    date = state_date.get('date')
+    if date:
+        date = datetime.datetime.fromtimestamp(state_date.get('date'))
 
+    await data.add_mailing(message.chat.id, post_message_id, markup, details, date, is_group=is_group)
     mailing = await data.get_mailing(post_message_id)
     if date:
         await get_mailing(message, mailing)
     else:
-        await data.set_active_mailing(mailing['message_id'], True)
+        await data.set_active_mailing(mailing['message_id'], True, is_group=is_group)
         await message.answer(texts['mailing__start'])
+    await state.finish()
 
 
 def get_mail_plan(date, texts) -> str:
@@ -196,35 +212,60 @@ async def mailing_controller(bot, delay):
             else:
                 continue
 
-            await data.set_active_mailing(mailing['message_id'], True)
+            await data.set_active_mailing(mailing['message_id'], True, is_group=mailing.get('is_group'))
 
-        user_ids = await data.get_mailing_users()
-        if user_ids:
-            sent = 0
-            not_sent = 0
-            tasks = [send_message_copy(bot, user_id, mailing['chat_id'], mailing['message_id'],
-                                       mailing['markup'])
-                     for user_id in user_ids]
-            if mailing['details']['type']:
-                user_ids = await data.get_mailing_users()
-                for user_id in user_ids:
-                    tasks.append(send_second_method(bot, user_id, mailing['details'], mailing['markup']))
+        if not mailing.get('is_group'):
+            user_ids = await data.get_mailing_users()
+            if user_ids:
+                sent = 0
+                not_sent = 0
+                tasks = [send_message_copy(bot, user_id, mailing['chat_id'], mailing['message_id'],
+                                           mailing['markup'])
+                         for user_id in user_ids]
+                if mailing['details']['type']:
+                    user_ids = await data.get_mailing_users()
+                    for user_id in user_ids:
+                        tasks.append(send_second_method(bot, user_id, mailing['details'], mailing['markup']))
 
-            results = await asyncio.gather(*tasks)
-            for result in results:
-                if result:
-                    sent += 1
-                else:
-                    not_sent += 1
-            await data.edit_mailing_progress(mailing['message_id'], sent, not_sent)
+                results = await asyncio.gather(*tasks)
+                for result in results:
+                    if result:
+                        sent += 1
+                    else:
+                        not_sent += 1
+                await data.edit_mailing_progress(mailing['message_id'], sent, not_sent)
+            else:
+
+                for admin in admins:
+                    await bot.send_message(admin,
+                                           texts['mailing_finished'].format(mailing['sent'] + mailing['not_sent'],
+                                                                            mailing['users_count'], mailing['sent'],
+                                                                            mailing['not_sent']))
+                await data.del_mailing(mailing['message_id'])
         else:
+            groups_ids = await data.get_mailing_groups()
+            logging.info(groups_ids)
+            if groups_ids:
+                sent = 0
+                not_sent = 0
+                tasks = [send_message_copy(bot, group_id, mailing['chat_id'], mailing['message_id'],
+                                           mailing['markup'])
+                         for group_id in groups_ids]
 
-            for admin in admins:
-                await bot.send_message(admin,
-                                       texts['mailing_finished'].format(mailing['sent'] + mailing['not_sent'],
-                                                                        mailing['users_count'], mailing['sent'],
-                                                                        mailing['not_sent']))
-            await data.del_mailing(mailing['message_id'])
+                results = await asyncio.gather(*tasks)
+                for result in results:
+                    if result:
+                        sent += 1
+                    else:
+                        not_sent += 1
+                await data.edit_mailing_progress(mailing['message_id'], sent, not_sent)
+            else:
+                for admin in admins:
+                    await bot.send_message(admin,
+                                           texts['mailing_finished'].format(mailing['sent'] + mailing['not_sent'],
+                                                                            mailing['users_count'], mailing['sent'],
+                                                                            mailing['not_sent']))
+                await data.del_mailing(mailing['message_id'])
 
 
 def get_details(message: Message):
@@ -264,6 +305,9 @@ async def cancel(call: CallbackQuery, state: FSMContext):
     if detail == 'mailing':
         await state.finish()
         await message.delete()
+    elif detail == 'main':
+        await state.finish()
+        await message.delete()
     elif detail.split('-')[0] == 'mailing2':
         message_id = int(detail.split('-')[1])
         await data.del_mailing(message_id)
@@ -272,16 +316,52 @@ async def cancel(call: CallbackQuery, state: FSMContext):
     await bot.answer_callback_query(call.id)
 
 
+async def mailing_choice(message: Message):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    buttons = misc.buttons
+
+    await message.answer(texts['mailing_choice'], reply_markup=inline.mailing_choice(buttons))
+    await message.delete()
+
+
+async def mailing_choice_callback(call: CallbackQuery, state: FSMContext):
+    bot = call.bot
+    message = call.message
+    message.from_user.id = call['from']['id']
+    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts
+    buttons = misc.buttons
+
+    action = call.data.split(':')[1]
+    logging.info(action)
+    if action == 'print':
+        await get_mailings(message, state)
+    elif action == 'add':
+        await add_mailing_start(message, state)
+    elif action == 'users':
+        await add_mailing_start(message, state)
+    elif action == 'groups':
+        await add_group_mailing_start(message, state)
+    await call.bot.answer_callback_query(call.id)
+
+
 def register_mailing(dp: Dispatcher):
     dp.register_message_handler(get_mailing, commands=["mailing"], state="*", is_admin=True, is_private=True)
     dp.register_message_handler(get_mailings, commands=["mailings"], state="*", is_admin=True, is_private=True)
     dp.register_message_handler(add_mailing_start, commands=["add_mailing"], state="*", is_admin=True)
+    dp.register_message_handler(add_group_mailing_start, commands=["add_group_mailing"], state="*", is_admin=True)
     dp.register_message_handler(add_mailing_post, state=GetMailing.mailing, content_types=ContentTypes.ANY,
                                 is_private=True)
     dp.register_message_handler(add_mailing_time, state=GetMailing.set_time, content_types=ContentTypes.ANY,
                                 is_private=True)
 
     dp.register_callback_query_handler(cancel, state="*", text_contains='cancel:')
+    dp.register_callback_query_handler(mailing_choice_callback, text_contains='mailing_choice:', state='*',
+                                       is_private=True, is_admin=True)
 
 
 if __name__ == '__main__':

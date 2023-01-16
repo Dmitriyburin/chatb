@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pyrogram import Client
 
 from aiogram import Bot, Dispatcher
 from aiogram import executor
@@ -20,7 +21,7 @@ from tgbot.handlers.add_to_chat import register_add_to_chat
 
 from tgbot.handlers.payment_system import payments_controller
 from tgbot.handlers.mailing import mailing_controller
-from tgbot.handlers.channels import register_channels
+from tgbot.handlers.channels import register_channels, main_channel_controller
 from tgbot.handlers.mailing import register_mailing
 from tgbot.middlewares.environment import EnvironmentMiddleware
 from tgbot.middlewares.bigfather import BigFatherMiddleware
@@ -60,6 +61,16 @@ def create_redis(config_db):
     return redis
 
 
+def create_pyrogram_client(misc):
+    api_id = misc.pyrogram.api_id
+    api_hash = misc.pyrogram.api_hash
+    app = Client(
+        "my_account",
+        api_id=api_id, api_hash=api_hash,
+    )
+    return app
+
+
 def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -86,6 +97,7 @@ def main():
     register_all_handlers(dp)
 
     dp.loop.create_task(payments_controller(bot, 10))
+    dp.loop.create_task(main_channel_controller(bot, 10))
     dp.loop.create_task(mailing_controller(bot, 1))
 
     # start

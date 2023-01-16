@@ -41,6 +41,8 @@ class BigFatherMiddleware(BaseMiddleware):
         if message.chat.type in [types.ChatType.SUPERGROUP, types.ChatType.GROUP]:
             await bot_data.add_chat_if_not_exists(message.chat.id)
             await bot_data.add_user_if_not_exists(message.chat.id, message.from_user.id)
+            await bot_data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
+            await bot_data.update_username_if_update(message.from_user.id, username=message.from_user.username)
         if message.chat.type != types.ChatType.PRIVATE:
             return
         misc = bot['misc']
@@ -92,22 +94,26 @@ class BigFatherMiddleware(BaseMiddleware):
             raise CancelHandler()
 
         # Channels
-        if update.callback_query:
-            return
-
-        white_list = bot['config'].tg_bot.admin_ids
-        user = await bot_data.get_user(message.from_user.id)
-        if message.from_user.id not in white_list and user:
-            channels = await check_sub(message)
-            if channels:
-                await required_channel(message, None)
-                raise CancelHandler()
+        # if update.callback_query:
+        #     return
+        #
+        # white_list = bot['config'].tg_bot.admin_ids
+        # user = await bot_data.get_user(message.from_user.id)
+        # if message.from_user.id not in white_list and user:
+        #     channels = await check_sub(message)
+        #     if channels:
+        #         await required_channel(message, None)
+        #         raise CancelHandler()
 
     async def on_process_message(self, message: types.Message, data: dict):
         """
         This handler is called when dispatcher receives a message
         :param message:
         """
+
+        if message.chat.type != types.ChatType.PRIVATE:
+            return
+
         # Get current handler
         handler = current_handler.get()
 
@@ -138,6 +144,8 @@ class BigFatherMiddleware(BaseMiddleware):
         :param message:
         :param throttled:
         """
+        if message.chat.type != types.ChatType.PRIVATE:
+            return
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
         if handler:
@@ -149,9 +157,9 @@ class BigFatherMiddleware(BaseMiddleware):
         delta = throttled.rate - throttled.delta
         bot = message.bot
 
-        # Prevent flooding
-        if throttled.exceeded_count <= 2:
-            await generate_captcha(bot, message)
+        # # Prevent flooding
+        # if throttled.exceeded_count <= 2:
+        #     await generate_captcha(bot, message)
 
         # Sleep.
         await asyncio.sleep(delta)

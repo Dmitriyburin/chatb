@@ -51,3 +51,9 @@ class Captcha(StatesGroup):
 
 class EditDescription(StatesGroup):
     description = State()
+
+
+class ExtraditionMoney(StatesGroup):
+    chat_id = State()
+    user_id = State()
+    count = State()

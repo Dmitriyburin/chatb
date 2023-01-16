@@ -29,6 +29,12 @@ class Anypay:
 
 
 @dataclass
+class Pyrogram:
+    api_id: int
+    api_hash: str
+
+
+@dataclass
 class Miscellaneous:
     texts: TypedDict
     buttons: dict
@@ -37,6 +43,7 @@ class Miscellaneous:
     payment_token: str
     relations: dict
     commands: dict
+    botstat_key: str
 
 
 @dataclass
@@ -74,7 +81,8 @@ def load_config(path: str = None):
                     shop=env.str('ANYPAY_SHOP')),
                 payment_token=env.str('PAYMENT_TOKEN'),
                 relations=conf['relations'],
-                commands=conf['commands']
+                commands=conf['commands'],
+                botstat_key=env.str('API_BOTSTAT_KEY')
             ),
         )
 
