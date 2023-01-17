@@ -11,7 +11,7 @@ async def bot_echo_all(message: types.Message, state: FSMContext):
     texts = misc.texts
     buttons = misc.buttons
 
-    if message.text in [buttons['install'], buttons['help']]:
+    if message.text in [buttons['install'], buttons['help'], buttons['groups']]:
         white_list = bot['config'].tg_bot.admin_ids
         user = await data.get_user(message.from_user.id)
         if message.from_user.id not in white_list and user:
