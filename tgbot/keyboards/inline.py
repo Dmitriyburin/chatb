@@ -259,3 +259,11 @@ def extradition_choice(btns):
         InlineKeyboardButton(btns['admin__refs__money'], callback_data=f'extradition_choice:money'))
 
     return markup
+
+
+def our_groups(groups):
+    markup = InlineKeyboardMarkup()
+    for group in groups:
+        markup.add(
+            InlineKeyboardButton(group['button_text'], url=group['link']))
+    return markup

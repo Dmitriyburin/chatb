@@ -585,7 +585,7 @@ async def help_handler(message: Message):
                              reply_markup=inline.go_to_ls(buttons, f'https://t.me/{(await bot.get_me()).username}'))
         await message.delete()
     elif message.chat.type == types.ChatType.PRIVATE:
-        await message.answer(texts['in_development'])
+        await message.answer(texts['help_private'])
 
 
 async def get_link_to_relation_actions(message: Message, user_receiver, start=False, user_sender=None):

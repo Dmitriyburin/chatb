@@ -25,9 +25,11 @@ async def bot_echo_all(message: types.Message, state: FSMContext):
         await message.answer(texts['add_bot_to_chat_manual'], reply_markup=inline.add_bot_to_chat(buttons, link))
         return
     elif message.text == buttons['help']:
-        await message.answer(texts['in_development'])
+        await message.answer(texts['help_private'])
         return
-
+    elif message.text == buttons['groups']:
+        await message.answer(texts['our_groups'], reply_markup=inline.our_groups(misc.groups))
+        return
     await message.answer(texts['not_understand'], reply_markup=reply.main(buttons))
 
 

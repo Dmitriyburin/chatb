@@ -44,6 +44,7 @@ class Miscellaneous:
     relations: dict
     commands: dict
     botstat_key: str
+    groups: dict
 
 
 @dataclass
@@ -82,7 +83,8 @@ def load_config(path: str = None):
                 payment_token=env.str('PAYMENT_TOKEN'),
                 relations=conf['relations'],
                 commands=conf['commands'],
-                botstat_key=env.str('API_BOTSTAT_KEY')
+                botstat_key=env.str('API_BOTSTAT_KEY'),
+                groups=conf['groups']
             ),
         )
 
