@@ -330,8 +330,9 @@ async def del_ref(message, state: FSMContext):
     texts = misc.texts['admin_texts']
     buttons = misc.buttons
 
-    if await data.get_ref(message.text):
-        await data.delete_ref(message.text)
+    ref = await data.get_ref(await parse_ref_from_link(message.text))
+    if ref:
+        await data.delete_ref(ref['ref'])
         await message.answer(texts['del_ref__success'])
         await state.finish()
     else:
