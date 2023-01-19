@@ -22,6 +22,7 @@ async def chat(message: Message):
     buttons = misc.buttons
 
     command = message.text.lower()
+    logging.info(command)
     if command in ['-отн основа']:
         main_relation = await data.get_main_relation(message.chat.id, message.from_user.id)
         if not main_relation:
@@ -134,12 +135,12 @@ async def chat(message: Message):
         commands = get_commands_actions(misc, relation['hp'])
     simple_commands = [com['command'].lower() for com in misc.commands]
 
-    if command not in (['отн', '+отн', 'отношения'] + ['-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
+    if command not in (['отн', '+отн', 'отношения', '/otn'] + ['-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
         'отн основа'] + ['профиль', 'кто я', 'кто ты'] + commands + simple_commands):
         return
 
     user_bd = await data.get_chat_user(message.chat.id, message.from_user.id)
-    if command in ['отн', '+отн', 'отношения'] and not is_main_relation_command:
+    if command in ['отн', '+отн', 'отношения', '/otn'] and not is_main_relation_command:
         if relation:
             await message.answer('Отношения с ним уже существуют')
             return
