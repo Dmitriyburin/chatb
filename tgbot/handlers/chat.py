@@ -23,6 +23,15 @@ async def chat(message: Message):
 
     command = message.text.lower()
     logging.info(command)
+
+    if command in (
+            ['-отн основа'] + ['профиль', 'кто я'] + ['баланс', 'мешок'] + ['фарма', 'фарм', 'фармить'] + [
+        'мои отн чат'] + ['мои отн'] + ['отны', 'отны топ', 'отны чат']):
+        await data.add_chat_if_not_exists(message.chat.id)
+        await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
+        await data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
+        await data.update_username_if_update(message.from_user.id, username=message.from_user.username)
+
     if command in ['-отн основа']:
         main_relation = await data.get_main_relation(message.chat.id, message.from_user.id)
         if not main_relation:
@@ -135,9 +144,19 @@ async def chat(message: Message):
         commands = get_commands_actions(misc, relation['hp'])
     simple_commands = [com['command'].lower() for com in misc.commands]
 
-    if command not in (['отн', '+отн', 'отношения', '/otn'] + ['-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
+    if command not in (
+            ['отн', '+отн', 'отношения', '/otn'] + ['-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
         'отн основа'] + ['профиль', 'кто я', 'кто ты'] + commands + simple_commands):
         return
+    else:
+        await data.add_chat_if_not_exists(message.chat.id)
+        await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
+        await data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
+        await data.update_username_if_update(message.from_user.id, username=message.from_user.username)
+
+        await data.add_user_if_not_exists(message.chat.id, user_receiver.id)
+        await data.add_user_chats_if_not_exists(user_receiver.id, username=user_receiver.username)
+        await data.update_username_if_update(user_receiver.id, username=user_receiver.username)
 
     user_bd = await data.get_chat_user(message.chat.id, message.from_user.id)
     if command in ['отн', '+отн', 'отношения', '/otn'] and not is_main_relation_command:
