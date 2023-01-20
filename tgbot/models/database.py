@@ -240,11 +240,10 @@ class Database:
         #     user_id: 865351408}}});
 
         chat_user = (await self.chats.find_one(
-            {'chat_id': chat_id, 'users.user_id': user_id},
-            {'users': {'$elemMatch': {'user_id': user_id}}}))
+            {'chat_id': chat_id, 'users.user_id': user_id}, {'users.$': 1}))
         if not chat_user:
             return chat_user
-        return chat_user['users'][0]
+        return chat_user['users']
 
     async def add_chat(self, chat_id: int) -> None:
         await self.chats.insert_one(
