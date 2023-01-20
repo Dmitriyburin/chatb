@@ -27,10 +27,11 @@ async def chat(message: Message):
     if command in (
             ['-отн основа'] + ['профиль', 'кто я'] + ['баланс', 'мешок'] + ['фарма', 'фарм', 'фармить'] + [
         'мои отн чат'] + ['мои отн'] + ['отны', 'отны топ', 'отны чат']):
-        await data.add_chat_if_not_exists(message.chat.id)
-        await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
-        await data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
-        await data.update_username_if_update(message.from_user.id, username=message.from_user.username)
+        # await data.add_chat_if_not_exists(message.chat.id)
+        # await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
+        # await data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
+        # await data.update_username_if_update(message.from_user.id, username=message.from_user.username)
+        pass
 
     if command in ['-отн основа']:
         main_relation = await data.get_main_relation(message.chat.id, message.from_user.id)
@@ -149,10 +150,6 @@ async def chat(message: Message):
         'отн основа'] + ['профиль', 'кто я', 'кто ты'] + commands + simple_commands):
         return
     else:
-        await data.add_chat_if_not_exists(message.chat.id)
-        await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
-        await data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
-        await data.update_username_if_update(message.from_user.id, username=message.from_user.username)
 
         await data.add_user_if_not_exists(message.chat.id, user_receiver.id)
         await data.add_user_chats_if_not_exists(user_receiver.id, username=user_receiver.username)
