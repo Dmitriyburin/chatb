@@ -240,8 +240,7 @@ class Database:
         #     user_id: 865351408}}});
 
         chat_user = (await self.chats.find_one(
-            {'chat_id': chat_id, 'users.user_id': user_id},
-            {'users': {'$elemMatch': {'user_id': user_id}}}))
+            {'chat_id': chat_id, 'users': {'$elemMatch': {'user_id': user_id}}}))
         if not chat_user:
             return chat_user
         return chat_user['users'][0]
@@ -418,7 +417,7 @@ class Database:
 
 async def main():
     database = Database('mongodb://localhost:27017')
-    print(await database.get_chat_user(-788548753, 865351408))
+    print(await database.get_chat_user(-788548753, 563579434))
 
 
 if __name__ == '__main__':
