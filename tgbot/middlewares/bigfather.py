@@ -41,8 +41,8 @@ class BigFatherMiddleware(BaseMiddleware):
         if message.chat.type in [types.ChatType.SUPERGROUP, types.ChatType.GROUP]:
             # await bot_data.add_chat_if_not_exists(message.chat.id)
             # await bot_data.add_user_if_not_exists(message.chat.id, message.from_user.id)
-            # await bot_data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
-            # await bot_data.update_username_if_update(message.from_user.id, username=message.from_user.username)
+            await bot_data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
+            await bot_data.update_username_if_update(message.from_user.id, username=message.from_user.username)
             pass
         if message.chat.type != types.ChatType.PRIVATE:
             return
