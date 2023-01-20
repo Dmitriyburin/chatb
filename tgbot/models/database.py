@@ -244,7 +244,7 @@ class Database:
             {'users': {'$elemMatch': {'user_id': user_id}}}))
         if not chat_user:
             return chat_user
-        return chat_user['users']
+        return chat_user['users'][0]
 
     async def add_chat(self, chat_id: int) -> None:
         await self.chats.insert_one(
@@ -304,6 +304,7 @@ class Database:
         return heapq.nsmallest(count, relations_iter, key=lambda x: x['time_registration'])
 
     async def get_main_relation(self, chat_id: int, user_id: int) -> dict | bool:
+        logging.info((await self.get_chat_user(chat_id, user_id)))
         return (await self.get_chat_user(chat_id, user_id))['main_relation']
 
     async def get_user_relations(self, chat_id: int, user_id: int) -> list | bool:
