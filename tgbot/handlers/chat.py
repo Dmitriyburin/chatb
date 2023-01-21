@@ -33,10 +33,9 @@ async def chat(message: Message):
 
     logging.info(all_command_actions)
 
-    if command in all_commands:
+    if command in all_commands or message.text.split('@')[0].lower().strip() in all_commands:
         await data.add_chat_if_not_exists(message.chat.id)
         await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
-
     else:
         return
 
