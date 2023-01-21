@@ -26,8 +26,10 @@ async def chat(message: Message):
 
     simple_commands = [com['command'].lower() for com in misc.commands]
     all_command_actions = get_all_actions(misc)
-    all_commands = ['-отн основа'] + ['профиль', 'кто я'] + ['баланс', 'мешок'] + ['фарма', 'фарм', 'фармить'] + [
-        'мои отн чат'] + ['мои отн'] + ['отны', 'отны топ', 'отны чат'] + ['отн', '+отн', 'отношения', '/otn'] + [
+    all_commands = ['-отн основа'] + ['профиль', 'кто я'] + ['баланс', 'мешок'] + ['фарма', 'ферма', 'фарм',
+                                                                                   'фармить'] + [
+                       'мои отн чат'] + ['мои отн'] + ['отны', 'отны топ', 'отны чат'] + ['отн', '+отн', 'отношения',
+                                                                                          '/otn'] + [
                        '-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
                        'отн основа'] + ['профиль', 'кто я', 'кто ты'] + simple_commands + all_command_actions
 
@@ -57,7 +59,7 @@ async def chat(message: Message):
         await message.reply(texts['money'].format(await get_nickname(message.from_user), user['coins']))
         return
 
-    elif command in ['фарма', 'фарм', 'фармить']:
+    elif command in ['фарма', 'фарм', 'фармить', 'ферма']:
         user_chats = await data.get_user_chats(message.from_user.id)
         if user_chats['time_last_farm']:
             time_next_farm = datetime.datetime.fromtimestamp(user_chats['time_last_farm']) + datetime.timedelta(
