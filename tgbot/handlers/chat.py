@@ -24,14 +24,21 @@ async def chat(message: Message):
     command = message.text.lower()
     logging.info(command)
 
-    if command in (
-            ['-отн основа'] + ['профиль', 'кто я'] + ['баланс', 'мешок'] + ['фарма', 'фарм', 'фармить'] + [
-        'мои отн чат'] + ['мои отн'] + ['отны', 'отны топ', 'отны чат']):
-        # await data.add_chat_if_not_exists(message.chat.id)
-        # await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
-        # await data.add_user_chats_if_not_exists(message.from_user.id, username=message.from_user.username)
-        # await data.update_username_if_update(message.from_user.id, username=message.from_user.username)
-        pass
+    simple_commands = [com['command'].lower() for com in misc.commands]
+    all_command_actions = get_all_actions(misc)
+    all_commands = ['-отн основа'] + ['профиль', 'кто я'] + ['баланс', 'мешок'] + ['фарма', 'фарм', 'фармить'] + [
+        'мои отн чат'] + ['мои отн'] + ['отны', 'отны топ', 'отны чат'] + ['отн', '+отн', 'отношения', '/otn'] + [
+                       '-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
+                       'отн основа'] + ['профиль', 'кто я', 'кто ты'] + simple_commands + all_command_actions
+
+    logging.info(all_command_actions)
+
+    if command in all_commands:
+        await data.add_chat_if_not_exists(message.chat.id)
+        await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
+
+    else:
+        return
 
     if command in ['-отн основа']:
         main_relation = await data.get_main_relation(message.chat.id, message.from_user.id)
@@ -122,9 +129,6 @@ async def chat(message: Message):
         for en in message.entities:
             if en.type == 'mention':
                 username = message.text.split('@')[1].strip()
-                # uvloop.install()
-                # pyrogram_client = bot['pyrogram_client']
-                # user_receiver_id = await get_user_id_by_username(pyrogram_client, username)
                 user_receiver_id = await data.get_id_by_username(username)
                 print(user_receiver_id)
                 user_receiver = (await bot.get_chat_member(message.chat.id, user_receiver_id)).user
@@ -143,14 +147,12 @@ async def chat(message: Message):
     commands = []
     if relation:
         commands = get_commands_actions(misc, relation['hp'])
-    simple_commands = [com['command'].lower() for com in misc.commands]
 
     if command not in (
             ['отн', '+отн', 'отношения', '/otn'] + ['-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
         'отн основа'] + ['профиль', 'кто я', 'кто ты'] + commands + simple_commands):
         return
     else:
-
         await data.add_user_if_not_exists(message.chat.id, user_receiver.id)
         await data.add_user_chats_if_not_exists(user_receiver.id, username=user_receiver.username)
         await data.update_username_if_update(user_receiver.id, username=user_receiver.username)
@@ -875,6 +877,14 @@ def get_commands_actions(misc, hp: int) -> list:
         if r['range'][0] <= hp < r['range'][1]:
             commands = r['actions']
             commands = [command['command'] for command in commands]
+    return commands
+
+
+def get_all_actions(misc) -> list:
+    commands = []
+    for r in misc.relations:
+        for command in r['actions']:
+            commands.append(command['command'])
     return commands
 
 
