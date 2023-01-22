@@ -941,7 +941,7 @@ commands:
     use_text: 😗|{} потрогал(а) {}
   - command: Пожать руку
     use_text: 🤝|{} пожал(а) руку {}
-  - command: Послать наxуй
+  - command: Послать нахуй
     use_text: 😡|{} послал(а) нахуй {}
   - command: Погладить
     use_text: 😇|{} погладил(а) {}
