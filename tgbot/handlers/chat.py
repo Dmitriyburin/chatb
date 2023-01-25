@@ -501,6 +501,7 @@ async def top_relations_callback(call: CallbackQuery):
     elif action == 'duration':
         texts_relations.append(f"{texts['duration']}\n")
 
+    count = 1
     for i, relation_group in enumerate(relations_groups):
         for j, relation in enumerate(relation_group):
             if j == 0:
@@ -511,10 +512,11 @@ async def top_relations_callback(call: CallbackQuery):
             days = get_days(int(seconds))
             user1 = (await bot.get_chat_member(message.chat.id, relation['users'][0])).user
             user2 = (await bot.get_chat_member(message.chat.id, relation['users'][1])).user
-            text_relation = f'{i + +j + 1}. ' + texts['my_relation'].format(await get_nickname(user1),
+            text_relation = f'{count}. ' + texts['my_relation'].format(await get_nickname(user1),
                                                                             await get_nickname(user2),
                                                                             days, relation['hp'])
             texts_relations.append(text_relation)
+            count += 1
 
     await message.answer('\n'.join(texts_relations))
     await message.delete()
