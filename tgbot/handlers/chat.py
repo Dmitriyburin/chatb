@@ -33,9 +33,8 @@ async def chat(message: Message):
                        '-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
                        'отн основа'] + ['профиль', 'кто я', 'кто ты'] + simple_commands + all_command_actions
 
-    logging.info(all_command_actions)
-
-    if command in all_commands or message.text.split('@')[0].lower().strip() in all_commands:
+    if command in all_commands or message.text.split('@')[0].lower().strip() in all_commands or \
+            any([command.startswith(c) for c in simple_commands]):
         await data.add_chat_if_not_exists(message.chat.id)
         await data.add_user_if_not_exists(message.chat.id, message.from_user.id)
     else:
@@ -151,7 +150,8 @@ async def chat(message: Message):
 
     if command not in (
             ['отн', '+отн', 'отношения', '/otn'] + ['-отн', '-отношения'] + ['отн действия'] + ['отн статус'] + [
-        'отн основа'] + ['профиль', 'кто я', 'кто ты'] + commands + simple_commands):
+        'отн основа'] + ['профиль', 'кто я', 'кто ты'] + commands + simple_commands) and not any(
+        [command.startswith(c) for c in simple_commands]):
         return
     else:
         await data.add_user_if_not_exists(message.chat.id, user_receiver.id)
@@ -246,11 +246,15 @@ async def chat(message: Message):
         if relation_yaml_old != relation_yaml_new:
             await message.answer(texts['new_level'].format(relation_yaml_new['description']))
 
-    elif command in simple_commands:
+    elif any([command.startswith(c) for c in simple_commands]):
         for com in misc.commands:
             if com['command'].lower() == command:
                 await message.answer(com['use_text'].format(await get_nickname(message.from_user),
                                                             await get_nickname(user_receiver)))
+            elif command.startswith(com['command'].lower()):
+                with_words = ' '.join(command.split()[len(com['command'].split()):])
+                await message.answer(
+                    f"{com['use_text'].format(await get_nickname(message.from_user), await get_nickname(user_receiver))}\nСо словами: {with_words}")
 
 
 async def relation_request(message: Message, user_receiver):
@@ -513,8 +517,8 @@ async def top_relations_callback(call: CallbackQuery):
             user1 = (await bot.get_chat_member(message.chat.id, relation['users'][0])).user
             user2 = (await bot.get_chat_member(message.chat.id, relation['users'][1])).user
             text_relation = f'{count}. ' + texts['my_relation'].format(await get_nickname(user1),
-                                                                            await get_nickname(user2),
-                                                                            days, relation['hp'])
+                                                                       await get_nickname(user2),
+                                                                       days, relation['hp'])
             texts_relations.append(text_relation)
             count += 1
 
