@@ -150,16 +150,19 @@ async def stats(message: Message):
     users_live, users_die, groups_live = 0, 0, all_chats - dead_groups
     male, female = '0%', '0%'
     access_key = misc.botstat_key
-    botstat = requests.get(f'https://api.botstat.io/get/{(await bot.get_me()).username}/{access_key}').json()
-    if botstat['ok']:
-        logging.info(botstat)
+    botstat = requests.get(f'https://api.botstat.io/get/{(await bot.get_me()).username}/{access_key}')
+    text = texts['stats_without_botstat'].format(all_users, users_live, users_die, male, female, all_chats, groups_live,
+                                 all_chats_users)
+    if botstat.ok:
+        botstat = botstat.json()
         users_die = botstat['result']['users_die']
         users_live = botstat['result']['users_live']
         groups_live = botstat['result']['groups_live']
         male = botstat['result'].get('male', male)
         female = botstat['result'].get('female', female)
-    await message.answer(
-        texts['stats'].format(all_users, users_live, users_die, male, female, all_chats, groups_live, all_chats_users))
+        text = texts['stats'].format(all_users, users_live, users_die, male, female, all_chats, groups_live,
+                                     all_chats_users)
+    await message.answer(text)
 
 
 async def add_ref_start(message: Message):
