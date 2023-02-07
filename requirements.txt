@@ -11,3 +11,5 @@ pyrogram
 asyncstdlib
 tgcrypto
 uvloop
+apscheduler
+SQLAlchemy

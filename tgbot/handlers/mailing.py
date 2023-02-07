@@ -2,12 +2,14 @@ import asyncio
 import datetime
 import json
 import logging
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.mongodb import MongoDBJobStore
 
-from aiogram import Dispatcher
+from aiogram import Dispatcher, Bot
 from aiogram.dispatcher import FSMContext
-from aiogram.types import MessageEntity, Message, ContentTypes, CallbackQuery
+from aiogram.types import MessageEntity, Message, ContentTypes, CallbackQuery, InlineKeyboardMarkup
 from aiogram.utils import exceptions
-from tgbot.misc.states import GetMailing
+from tgbot.misc.states import GetMailing, AddMailingSingle
 from tgbot.keyboards import inline
 
 
@@ -135,6 +137,89 @@ async def add_mailing(message: Message, state: FSMContext):
         await data.set_active_mailing(mailing['message_id'], True, is_group=is_group)
         await message.answer(texts['mailing__start'])
     await state.finish()
+
+
+async def add_single_group_mailing_start(message: Message, state: FSMContext):
+    bot = message.bot
+    misc = bot['misc']
+    buttons = misc.buttons
+    texts = misc.texts['admin_texts']
+
+    await AddMailingSingle.post_id.set()
+    await message.answer(texts['add_mailing__post'],
+                         reply_markup=inline.cancel(buttons, 'cancel:mailing'))
+
+
+async def add_single_group_mailing_post(message: Message, state: FSMContext):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    buttons = misc.buttons
+    texts = misc.texts['admin_texts']
+
+    post_message_id = message.message_id
+    markup = None
+    if message.reply_markup:
+        markup = message.reply_markup.as_json()
+
+    await state.update_data(post_id=post_message_id, markup=markup)
+    await AddMailingSingle.group_id.set()
+    await message.answer(texts['add_mailing__group_id'], reply_markup=inline.cancel(buttons, 'cancel:mailing'))
+
+
+async def add_single_group_mailing_id(message: Message, state: FSMContext):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    buttons = misc.buttons
+    texts = misc.texts['admin_texts']
+
+    group_id = int(message.text)
+    post_id = int((await state.get_data())['post_id'])
+    markup = (await state.get_data())['markup']
+    not_loads_mark = markup
+    if markup:
+        markup = InlineKeyboardMarkup.to_object(json.loads(markup))
+
+    bot = message.bot
+    message_id = (await bot.copy_message(group_id, message.from_user.id, post_id,
+                                         reply_markup=markup)).message_id
+    scheduler = bot['scheduler']
+    job = scheduler.add_job(mailing_to_group, 'interval', seconds=10, args=(None, None, None, None, None, None))
+    job.modify(args=(bot, group_id, not_loads_mark, scheduler, job.id, message_id))
+    await data.add_job(group_id, message_id, job.id, not_loads_mark)
+
+    await state.finish()
+    await message.answer(texts['mailing__start'])
+
+
+async def print_single_mailings(message: Message):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    buttons = misc.buttons
+    texts = misc.texts['admin_texts']
+
+    jobs = await data.get_jobs()
+    async for job in jobs:
+        await bot.copy_message(message.from_user.id, job['group_id'], job['message_id'],
+                               reply_markup=inline.delete(f"delete_single_group_mailing:{job['group_id']}"))
+        await message.answer('-' * 10)
+
+
+async def delete_single_group_mailing_callback(call: CallbackQuery, state: FSMContext):
+    bot = call.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    buttons = misc.buttons
+    scheduler: AsyncIOScheduler = bot['scheduler']
+    texts = misc.texts['admin_texts']
+    group_id = int(call.data.split(':')[2])
+    logging.info(group_id)
+    job = await data.get_job(group_id)
+    scheduler.remove_job(job['job_id'])
+    await data.delete_job(group_id)
+    await call.message.delete()
 
 
 def get_mail_plan(date, texts) -> str:
@@ -268,6 +353,22 @@ async def mailing_controller(bot, delay):
                 await data.del_mailing(mailing['message_id'])
 
 
+async def mailing_to_group(bot: Bot, group_id, markup, scheduler: AsyncIOScheduler, job_id,
+                           last_message_id=None):
+    not_loads_markup = markup
+    if markup:
+        markup = InlineKeyboardMarkup.to_object(
+            json.loads(markup))
+    data: Database = bot['db']
+    current_message_id = (await bot.copy_message(group_id, group_id, last_message_id,
+                                                 reply_markup=markup)).message_id
+    logging.info(not_loads_markup)
+    scheduler.modify_job(job_id, args=(bot, group_id, not_loads_markup, scheduler, job_id, current_message_id))
+    await data.update_job(group_id, current_message_id, job_id)
+    if last_message_id:
+        await bot.delete_message(group_id, last_message_id)
+
+
 def get_details(message: Message):
     details = {'type': None}
 
@@ -352,6 +453,8 @@ async def mailing_choice_callback(call: CallbackQuery, state: FSMContext):
 def register_mailing(dp: Dispatcher):
     dp.register_message_handler(get_mailing, commands=["mailing"], state="*", is_admin=True, is_private=True)
     dp.register_message_handler(get_mailings, commands=["mailings"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(print_single_mailings, commands=["single_mailings"], state="*", is_admin=True,
+                                is_private=True)
     dp.register_message_handler(add_mailing_start, commands=["add_mailing"], state="*", is_admin=True)
     dp.register_message_handler(add_group_mailing_start, commands=["add_group_mailing"], state="*", is_admin=True)
     dp.register_message_handler(add_mailing_post, state=GetMailing.mailing, content_types=ContentTypes.ANY,
@@ -359,8 +462,20 @@ def register_mailing(dp: Dispatcher):
     dp.register_message_handler(add_mailing_time, state=GetMailing.set_time, content_types=ContentTypes.ANY,
                                 is_private=True)
 
+    dp.register_message_handler(add_single_group_mailing_start, commands=["add_single_mailing"], state="*",
+                                is_admin=True)
+    dp.register_message_handler(add_single_group_mailing_post, state=AddMailingSingle.post_id,
+                                content_types=ContentTypes.ANY,
+                                is_private=True)
+    dp.register_message_handler(add_single_group_mailing_id, state=AddMailingSingle.group_id,
+                                content_types=ContentTypes.ANY,
+                                is_private=True)
+
     dp.register_callback_query_handler(cancel, state="*", text_contains='cancel:')
     dp.register_callback_query_handler(mailing_choice_callback, text_contains='mailing_choice:', state='*',
+                                       is_private=True, is_admin=True)
+    dp.register_callback_query_handler(delete_single_group_mailing_callback,
+                                       text_contains='delete_single_group_mailing:', state='*',
                                        is_private=True, is_admin=True)
 
 
@@ -369,3 +484,4 @@ if __name__ == '__main__':
     from ..config import load_config
 
     config = load_config("../../.env")
+

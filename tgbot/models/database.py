@@ -25,6 +25,7 @@ class Database:
         self.users_chats = self.db.users_chats
         self.dead_users = self.db.dead_users
         self.dead_groups = self.db.dead_groups
+        self.jobs_scheduler = self.db.jobs_scheduler
 
     async def add_user(self, user_id, ref, lang='ru') -> None:
         await self.increment_users_count_stats()
@@ -414,6 +415,27 @@ class Database:
 
     async def get_dead_groups(self, group_id) -> None:
         await self.dead_groups.find_one({'group_id': group_id})
+
+    async def add_job(self, group_id, message_id, job_id, markup):
+        await self.jobs_scheduler.insert_one({'group_id': group_id, 'message_id': message_id, 'job_id': job_id,
+                                              'markup': markup})
+
+    async def update_job(self, group_id, message_id, job_id):
+        await self.jobs_scheduler.update_one({'job_id': job_id},
+                                             {'$set': {'group_id': group_id, 'message_id': message_id}})
+
+    async def update_job_id(self, job_id, new_job_id):
+        await self.jobs_scheduler.update_one({'job_id': job_id},
+                                             {'$set': {'job_id': new_job_id}})
+
+    async def delete_job(self, chat_id):
+        await self.jobs_scheduler.delete_many({'group_id': chat_id})
+
+    async def get_job(self, chat_id):
+        return await self.jobs_scheduler.find_one({'group_id': chat_id})
+
+    async def get_jobs(self):
+        return self.jobs_scheduler.find({})
 
 
 async def main():

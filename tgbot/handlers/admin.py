@@ -3,6 +3,7 @@ import requests
 import itertools
 import datetime
 import os
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiogram import Dispatcher
 
@@ -13,7 +14,7 @@ from aiogram.utils import exceptions
 from tgbot.misc.states import AddChannel, DeleteChannel, AddRef, DeleteRef, BanUser
 from tgbot.misc.states import StatsRef, RefsMonth, UnbanUser, ExtraditionMoney
 from tgbot.misc.functions import generate_start_ref, get_start_url_by_ref, parse_ref_from_link
-from tgbot.handlers.mailing import mailing_choice
+from tgbot.handlers.mailing import mailing_choice, mailing_to_group
 from tgbot.keyboards import inline
 
 
@@ -152,7 +153,7 @@ async def stats(message: Message):
     access_key = misc.botstat_key
     botstat = requests.get(f'https://api.botstat.io/get/{(await bot.get_me()).username}/{access_key}')
     text = texts['stats_without_botstat'].format(all_users, users_live, users_die, male, female, all_chats, groups_live,
-                                 all_chats_users)
+                                                 all_chats_users)
     if botstat.ok:
         botstat = botstat.json()
         users_die = botstat['result']['users_die']
@@ -587,10 +588,20 @@ async def get_id(message: Message):
     await message.answer(f'Твой id: <code>{message.from_user.id}</code>')
 
 
+async def lol(message: Message):
+    bot = message.bot
+    message_id = (await bot.copy_message(-788548753, -788548753, 4779)).message_id
+    scheduler = AsyncIOScheduler()
+    job = scheduler.add_job(mailing_to_group, 'interval', seconds=10, args=(None, None, None, None, None))
+    job.modify(args=(bot, -788548753, message_id, scheduler, job.id, message_id))
+    scheduler.start()
+
+
 def register_admin(dp: Dispatcher):
     dp.register_errors_handler(bot_blocked, exception=exceptions.BotBlocked)
 
     dp.register_message_handler(admin_main_2, commands=["admin"], state="*", is_admin=True, is_private=True)
+    dp.register_message_handler(lol, commands=["lol"], state="*", is_admin=True, is_private=True)
     dp.register_callback_query_handler(admin_callback, state="*",
                                        text_contains='admin:',
                                        is_admin=True, is_private=True)

@@ -6,6 +6,11 @@ class GetMailing(StatesGroup):
     set_time = State()
 
 
+class AddMailingSingle(StatesGroup):
+    post_id = State()
+    group_id = State()
+
+
 class AddChannel(StatesGroup):
     channel = State()
     link = State()

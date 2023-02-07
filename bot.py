@@ -1,6 +1,8 @@
 import asyncio
 import logging
 from pyrogram import Client
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.mongodb import MongoDBJobStore
 
 from aiogram import Bot, Dispatcher
 from aiogram import executor
@@ -20,7 +22,7 @@ from tgbot.handlers.chat import register_chat
 from tgbot.handlers.add_to_chat import register_add_to_chat
 
 from tgbot.handlers.payment_system import payments_controller
-from tgbot.handlers.mailing import mailing_controller
+from tgbot.handlers.mailing import mailing_controller, mailing_to_group
 from tgbot.handlers.channels import register_channels, main_channel_controller
 from tgbot.handlers.mailing import register_mailing
 from tgbot.middlewares.environment import EnvironmentMiddleware
@@ -71,6 +73,16 @@ def create_pyrogram_client(misc):
     return app
 
 
+async def add_jobs(bot, data, scheduler):
+    jobs = await data.get_jobs()
+    async for job in jobs:
+        job_ = scheduler.add_job(mailing_to_group, 'interval', seconds=10,
+                                 args=(
+                                 bot, job['group_id'], job['markup'], scheduler, job['job_id'], job['message_id']))
+        job_.modify(args=(bot, job['group_id'], job['markup'], scheduler, job_.id, job['message_id']))
+        await data.update_job_id(job['job_id'], job_.id)
+
+
 def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -90,6 +102,7 @@ def main():
     bot['redis'] = create_redis(config.db)
 
     db: Database = bot['db']
+
     loop.run_until_complete(db.create_stats_if_not_exist())
 
     register_all_middlewares(dp, config)
@@ -99,6 +112,15 @@ def main():
     dp.loop.create_task(payments_controller(bot, 10))
     dp.loop.create_task(main_channel_controller(bot, 10))
     dp.loop.create_task(mailing_controller(bot, 1))
+
+    jobstores = {
+        'mongo': MongoDBJobStore(host='mongo'),
+    }
+
+    scheduler = AsyncIOScheduler(jobstores=jobstores, event_loop=loop)
+    loop.run_until_complete(add_jobs(bot, bot['db'], scheduler))
+    scheduler.start()
+    bot['scheduler'] = scheduler
 
     # start
     executor.start_polling(dp, skip_updates=True)
