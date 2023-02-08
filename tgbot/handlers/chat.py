@@ -22,7 +22,6 @@ async def chat(message: Message):
     buttons = misc.buttons
 
     command = message.text.lower()
-    logging.info(message.message_id)
 
     simple_commands = [com['command'].lower() for com in misc.commands]
     all_command_actions = get_all_actions(misc)

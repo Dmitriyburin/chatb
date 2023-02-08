@@ -202,6 +202,7 @@ async def print_single_mailings(message: Message):
 
     jobs = await data.get_jobs()
     async for job in jobs:
+        await message.answer(f"👇 ID Чата: <code>{job['group_id']}</code>")
         await bot.copy_message(message.from_user.id, job['group_id'], job['message_id'],
                                reply_markup=inline.delete(f"delete_single_group_mailing:{job['group_id']}"))
         await message.answer('-' * 10)
