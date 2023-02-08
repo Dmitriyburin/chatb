@@ -76,7 +76,7 @@ def create_pyrogram_client(misc):
 async def add_jobs(bot, data, scheduler):
     jobs = await data.get_jobs()
     async for job in jobs:
-        job_ = scheduler.add_job(mailing_to_group, 'interval', seconds=10,
+        job_ = scheduler.add_job(mailing_to_group, 'interval', minutes=10,
                                  args=(
                                  bot, job['group_id'], job['markup'], scheduler, job['job_id'], job['message_id']))
         job_.modify(args=(bot, job['group_id'], job['markup'], scheduler, job_.id, job['message_id']))

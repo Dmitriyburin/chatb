@@ -146,7 +146,7 @@ async def add_single_group_mailing_start(message: Message, state: FSMContext):
     texts = misc.texts['admin_texts']
 
     await AddMailingSingle.post_id.set()
-    await message.answer(texts['add_mailing__post'],
+    await message.answer(texts['add_mailing_single__post'],
                          reply_markup=inline.cancel(buttons, 'cancel:mailing'))
 
 
@@ -185,7 +185,7 @@ async def add_single_group_mailing_id(message: Message, state: FSMContext):
     message_id = (await bot.copy_message(group_id, message.from_user.id, post_id,
                                          reply_markup=markup)).message_id
     scheduler = bot['scheduler']
-    job = scheduler.add_job(mailing_to_group, 'interval', seconds=10, args=(None, None, None, None, None, None))
+    job = scheduler.add_job(mailing_to_group, 'interval', minutes=10, args=(None, None, None, None, None, None))
     job.modify(args=(bot, group_id, not_loads_mark, scheduler, job.id, message_id))
     await data.add_job(group_id, message_id, job.id, not_loads_mark)
 
@@ -447,6 +447,10 @@ async def mailing_choice_callback(call: CallbackQuery, state: FSMContext):
         await add_mailing_start(message, state)
     elif action == 'groups':
         await add_group_mailing_start(message, state)
+    elif action == 'add_single':
+        await add_single_group_mailing_start(message, state)
+    elif action == 'print_singles':
+        await print_single_mailings(message)
     await call.bot.answer_callback_query(call.id)
 
 

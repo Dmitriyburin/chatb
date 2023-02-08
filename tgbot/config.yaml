@@ -33,6 +33,8 @@ buttons:
   admin__mailing__users: По юзерам
   admin__mailing__groups: По чатам
   admin__mailing__print: Вывести
+  admin_mailings__add_single: Добавить в один чат
+  admin_mailings__print_singles: Вывести по чатам
   admin__channels__add: Добавить
   admin__channels__add_main: Добавить основной
   admin__channels__delete: Удалить
@@ -108,6 +110,7 @@ texts:
     get_stats_ref__not_found: 'Такой ссылки не существует'
 
     add_mailing__post: 'Скиньте сюда пост, который хотите всем разослать'
+    add_mailing_single__post: Скиньте сюда пост, который хотите разослать
     add_mailing__group_id: Скиньте id чата, в который хотите сделать рассылку
     add_mailing__time: |
       Введите время в формате: <b>часы:минуты день.месяц.год</b>

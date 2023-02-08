@@ -228,6 +228,9 @@ def mailing_choice(btns):
     markup.row(
         InlineKeyboardButton(btns['admin__mailing__users'], callback_data=f'mailing_choice:users'),
         InlineKeyboardButton(btns['admin__mailing__groups'], callback_data=f'mailing_choice:groups'))
+    markup.add(InlineKeyboardButton(btns['admin_mailings__add_single'], callback_data=f'mailing_choice:add_single'))
+    markup.add(InlineKeyboardButton(btns['admin_mailings__print_singles'], callback_data=f'mailing_choice:print_singles'))
+
     return markup
 
 
