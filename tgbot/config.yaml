@@ -137,7 +137,8 @@ texts:
       <b>Отправлено: </b> {2}
       <b>Не отправлено: </b> {3}
     
-    
+    mailing_single__not_found: |
+      СООБЩЕНИЕ НЕ НАЙДЕНО
     
 
     mailing_choice: 'Рассылки'
