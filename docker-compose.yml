@@ -28,6 +28,7 @@ services:
       - "27017:27017"
     environment:
       - TZ=Europe/Moscow
+    command: mongod --auth
   redis:
     image: redis
     command: redis-server --appendonly yes --replica-read-only no

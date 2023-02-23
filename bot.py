@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from pyrogram import Client
+from pymongo import MongoClient
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 
@@ -114,7 +115,7 @@ def main():
     dp.loop.create_task(mailing_controller(bot, 1))
 
     jobstores = {
-        'mongo': MongoDBJobStore(host='mongo'),
+        'mongo': MongoDBJobStore(client=MongoClient('mongodb://root:galjkfgnflbda@mongo:27017')),
     }
 
     scheduler = AsyncIOScheduler(jobstores=jobstores, event_loop=loop)
