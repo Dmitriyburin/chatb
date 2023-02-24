@@ -260,14 +260,17 @@ class Database:
         if not await self.get_chat(chat_id):
             await self.add_chat(chat_id)
 
-    async def add_relation(self, chat_id: int, user1_id: int, user2_id: int) -> None:
+    async def add_relation(self, chat_id: int, user1_id: int, user2_id: int,
+                           hp=0, time_registration=None) -> None:
         if not await self.get_chat_user(chat_id, user1_id):
             await self.add_chat_user(chat_id, user1_id)
 
         if not await self.get_chat_user(chat_id, user2_id):
             await self.add_chat_user(chat_id, user2_id)
-        time_registration = datetime.datetime.now().timestamp()
-        relation = {'users': [user1_id, user2_id], 'hp': 0,
+
+        if not time_registration:
+            time_registration = datetime.datetime.now().timestamp()
+        relation = {'users': [user1_id, user2_id], 'hp': hp,
                     'time_registration': time_registration, 'time_to_next_action': None}
         await self.chats.update_one({'chat_id': chat_id}, {'$push': {'relations': relation}})
 
@@ -441,6 +444,7 @@ class Database:
 async def main():
     database = Database('mongodb://localhost:27017')
     print(await database.get_chat_user(-788548753, 5673579434))
+    await database.add_relation()
 
 
 if __name__ == '__main__':
