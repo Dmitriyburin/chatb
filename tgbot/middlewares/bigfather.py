@@ -51,21 +51,6 @@ class BigFatherMiddleware(BaseMiddleware):
         banned_users = await bot_data.get_ban_users()
         for banned_user in banned_users:
             if banned_user['user_id'] == message.from_user.id:
-
-                misc = bot['misc']
-                prices: dict = misc.prices
-                value = prices['unban']
-
-                price = value['price']
-                anypay_secret, anypay_shop = misc.anypay.secret, misc.anypay.shop
-                payment_id = await bot_data.get_anypay_payment_id()
-                sign, secret = anypay.gen_hash(price, payment_id, anypay_secret=anypay_secret,
-                                               anypay_shop=anypay_shop)
-                url = anypay.gen_url(price, payment_id, value['description'], sign, anypay_shop=anypay_shop)
-
-                await bot_data.add_anypay_payment(message.from_user.id, sign, secret, payment_id,
-                                                  price=price, action='unban')
-
                 if banned_user['date']:
                     current_time = datetime.datetime.now()
                     if current_time >= banned_user['date']:
@@ -74,23 +59,12 @@ class BigFatherMiddleware(BaseMiddleware):
                         remained_seconds = (datetime.datetime.fromtimestamp(banned_user['date']) - current_time).seconds
                         remained_hours = remained_seconds // 3600
                         remained_minutes = (remained_seconds - (remained_hours * 3600)) // 60
-                        await message.answer(texts['you_are_banned_time'].format(remained_hours, remained_minutes),
-                                             reply_markup=inline.unban(url))
+                        await message.answer(texts['you_are_banned_time'].format(remained_hours, remained_minutes))
                         raise CancelHandler()
                 else:
 
-                    await message.answer(texts['you_are_banned'], reply_markup=inline.unban(url))
+                    await message.answer(texts['you_are_banned'])
                     raise CancelHandler()
-
-        # Captcha
-        redis: Redis = bot['redis']
-        if await redis.get_captcha(message.from_user.id):
-            if message.text == await redis.get_captcha_text(message.from_user.id):
-                await message.answer('Вы разблокированы!')
-                await redis.delete_captcha(message.from_user.id)
-            else:
-                await generate_captcha(bot, message)
-            raise CancelHandler()
 
         # Channels
         # if update.callback_query:

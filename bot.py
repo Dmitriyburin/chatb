@@ -115,7 +115,7 @@ def main():
     dp.loop.create_task(mailing_controller(bot, 1))
 
     jobstores = {
-        'mongo': MongoDBJobStore(client=MongoClient('mongodb://root:galjkfgnflbda@mongo:27017')),
+        'mongo': MongoDBJobStore(client=MongoClient(config.db.string_connection_mongodb)),
     }
 
     scheduler = AsyncIOScheduler(jobstores=jobstores, event_loop=loop)
