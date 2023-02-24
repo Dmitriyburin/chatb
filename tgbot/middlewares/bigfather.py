@@ -47,6 +47,10 @@ class BigFatherMiddleware(BaseMiddleware):
         misc = bot['misc']
         texts = misc.texts
 
+        user = await bot_data.get_user(message.from_user.id)
+        if not user:
+            await bot_data.add_user(message.from_user.id, None)
+
         # Проверка на бан
         banned_users = await bot_data.get_ban_users()
         for banned_user in banned_users:
