@@ -169,6 +169,8 @@ texts:
     extradition_money__user_id: Введите id пользователя
     extradition_money__user_id_uncorrected: Id должен быть числом
 
+    add_users__file: Скиньте файл с юзерами
+    add_users__successful: Успешно добавлено {} юзеров
     stats: |
       Статистика в лс:
 

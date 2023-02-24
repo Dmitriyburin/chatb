@@ -1,5 +1,6 @@
 aiogram~=2.18
 aioredis>=2.0
+aiofiles
 redis
 requests
 captcha>=0.4

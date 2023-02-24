@@ -62,3 +62,7 @@ class ExtraditionMoney(StatesGroup):
     chat_id = State()
     user_id = State()
     count = State()
+
+
+class AddUsers(StatesGroup):
+    file = State()

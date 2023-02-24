@@ -1,6 +1,8 @@
 import logging
 
 import aiohttp
+import aiofiles
+import aiofiles.os
 import requests
 import itertools
 import datetime
@@ -9,12 +11,12 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiogram import Dispatcher
 
-from aiogram.types import Message, CallbackQuery, Update
+from aiogram.types import Message, CallbackQuery, Update, ContentTypes
 from aiogram.dispatcher import FSMContext
 from aiogram.utils.deep_linking import get_start_link
 from aiogram.utils import exceptions
 from tgbot.misc.states import AddChannel, DeleteChannel, AddRef, DeleteRef, BanUser
-from tgbot.misc.states import StatsRef, RefsMonth, UnbanUser, ExtraditionMoney
+from tgbot.misc.states import StatsRef, RefsMonth, UnbanUser, ExtraditionMoney, AddUsers
 from tgbot.misc.functions import generate_start_ref, get_start_url_by_ref, parse_ref_from_link
 from tgbot.handlers.mailing import mailing_choice, mailing_to_group
 from tgbot.keyboards import inline
@@ -457,6 +459,40 @@ async def extradition_money(message: Message, state: FSMContext):
     await state.finish()
 
 
+async def add_users_start(message: Message, state: FSMContext):
+    bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    buttons = misc.buttons
+
+    await message.answer(texts['add_users__file'], reply_markup=inline.cancel_main(buttons))
+    await AddUsers.file.set()
+
+
+async def add_users(message: Message, state: FSMContext):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    buttons = misc.buttons
+
+    await state.finish()
+    file = (await message.document.get_file())
+    download_file = (await file.download())
+    count = 0
+    async with aiofiles.open(download_file.name, mode='r') as f:
+        async for line in f:
+            user = await data.get_user(int(line.strip()))
+            logging.info((user, int(line.strip())))
+            if not user:
+                await data.add_user(int(line), ref=None)
+                count += 1
+        await aiofiles.os.remove(f.name)
+
+    await message.answer(texts['add_users__successful'].format(count))
+    await state.finish()
+
+
 async def channels_choice(message: Message):
     bot = message.bot
     data: Database = bot['db']
@@ -657,6 +693,11 @@ def register_admin(dp: Dispatcher):
     dp.register_message_handler(extradition_money_user_id, state=ExtraditionMoney.user_id, is_admin=True,
                                 is_private=True)
     dp.register_message_handler(extradition_money, state=ExtraditionMoney.count, is_admin=True, is_private=True)
+
+    dp.register_message_handler(add_users_start, commands=["add_users"], is_admin=True,
+                                is_private=True)
+    dp.register_message_handler(add_users, state=AddUsers.file, is_admin=True, is_private=True,
+                                content_types=ContentTypes.ANY)
 
 
 if __name__ == '__main__':
