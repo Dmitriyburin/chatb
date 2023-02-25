@@ -66,3 +66,10 @@ class ExtraditionMoney(StatesGroup):
 
 class AddUsers(StatesGroup):
     file = State()
+
+
+class AddRelations(StatesGroup):
+    chat_id = State()
+    date = State()
+    users = State()
+    hp = State()

@@ -16,7 +16,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.utils.deep_linking import get_start_link
 from aiogram.utils import exceptions
 from tgbot.misc.states import AddChannel, DeleteChannel, AddRef, DeleteRef, BanUser
-from tgbot.misc.states import StatsRef, RefsMonth, UnbanUser, ExtraditionMoney, AddUsers
+from tgbot.misc.states import StatsRef, RefsMonth, UnbanUser, ExtraditionMoney, AddUsers, AddRelations
 from tgbot.misc.functions import generate_start_ref, get_start_url_by_ref, parse_ref_from_link
 from tgbot.handlers.mailing import mailing_choice, mailing_to_group
 from tgbot.keyboards import inline
@@ -493,6 +493,74 @@ async def add_users(message: Message, state: FSMContext):
     await state.finish()
 
 
+async def add_relation_start(message: Message, state: FSMContext):
+    bot = message.bot
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    buttons = misc.buttons
+
+    await message.answer(texts['add_relations__chat_id'], reply_markup=inline.cancel_main(buttons))
+    await AddRelations.chat_id.set()
+
+
+async def add_relations_chat_id(message: Message, state: FSMContext):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    buttons = misc.buttons
+
+    chat_id = int(message.text)
+    await state.update_data(chat_id=chat_id)
+    await message.answer(texts['add_relations__date'], reply_markup=inline.cancel_main(buttons))
+    await AddRelations.date.set()
+
+
+async def add_relations_date(message: Message, state: FSMContext):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    buttons = misc.buttons
+
+    date = datetime.datetime.strptime(message.text, "%d.%m.%Y")
+    await state.update_data(date=datetime.datetime.timestamp(date))
+    await message.answer(texts['add_relations__hp'], reply_markup=inline.cancel_main(buttons))
+    await AddRelations.hp.set()
+
+
+async def add_relations_hp(message: Message, state: FSMContext):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    buttons = misc.buttons
+
+    hp = int(message.text)
+    await state.update_data(hp=hp)
+    await message.answer(texts['add_relations__users'], reply_markup=inline.cancel_main(buttons))
+    await AddRelations.users.set()
+
+
+async def add_relations(message: Message, state: FSMContext):
+    bot = message.bot
+    data: Database = bot['db']
+    misc = bot['misc']
+    texts = misc.texts['admin_texts']
+    buttons = misc.buttons
+
+    chat_id = (await state.get_data())['chat_id']
+    date = (await state.get_data())['date']
+    hp = (await state.get_data())['hp']
+
+    user1, user2 = set(map(int, message.text.split()))
+    current_relations = await data.get_relation(chat_id, user1, user2)
+    if not current_relations:
+        await data.add_relation(chat_id, user1, user2, hp, date)
+    await message.answer(texts['add_relations__successful'])
+    await state.finish()
+
+
 async def channels_choice(message: Message):
     bot = message.bot
     data: Database = bot['db']
@@ -697,6 +765,17 @@ def register_admin(dp: Dispatcher):
     dp.register_message_handler(add_users_start, commands=["add_users"], is_admin=True,
                                 is_private=True)
     dp.register_message_handler(add_users, state=AddUsers.file, is_admin=True, is_private=True,
+                                content_types=ContentTypes.ANY)
+
+    dp.register_message_handler(add_relation_start, commands=["add_relations"], is_admin=True,
+                                is_private=True)
+    dp.register_message_handler(add_relations_chat_id, state=AddRelations.chat_id, is_admin=True, is_private=True,
+                                content_types=ContentTypes.ANY)
+    dp.register_message_handler(add_relations_date, state=AddRelations.date, is_admin=True, is_private=True,
+                                content_types=ContentTypes.ANY)
+    dp.register_message_handler(add_relations_hp, state=AddRelations.hp, is_admin=True, is_private=True,
+                                content_types=ContentTypes.ANY)
+    dp.register_message_handler(add_relations, state=AddRelations.users, is_admin=True, is_private=True,
                                 content_types=ContentTypes.ANY)
 
 

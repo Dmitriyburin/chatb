@@ -171,6 +171,12 @@ texts:
 
     add_users__file: Скиньте файл с юзерами
     add_users__successful: Успешно добавлено {} юзеров
+
+    add_relations__users: Введите id двоих пользователей через проблел (например 123456 987766)
+    add_relations__hp: Введите hp отношений
+    add_relations__date: Введите дату начала отношений в формате день.месяц.год (например 25.02.2023)
+    add_relations__chat_id: Введите chat_id, где хотите добавить отношения
+    add_relations__successful: Успешно созданы отношения
     stats: |
       Статистика в лс:
 
