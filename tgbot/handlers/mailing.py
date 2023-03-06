@@ -54,6 +54,7 @@ async def add_mailing_start(message: Message, state: FSMContext):
     texts = misc.texts['admin_texts']
 
     await GetMailing.mailing.set()
+    await state.update_data(is_group=False)
     await message.answer(texts['add_mailing__post'],
                          reply_markup=inline.cancel(buttons, 'cancel:mailing'))
 
@@ -94,13 +95,14 @@ async def add_mailing_time(message: Message, state: FSMContext):
     misc = bot['misc']
     buttons = misc.buttons
     texts = misc.texts['admin_texts']
-
+    logging.info(message.text)
     try:
         if message.text.lower() == 'сейчас' or message.text.lower() == 'now':
             await add_mailing(message, state)
             return
 
         date = datetime.datetime.strptime(message.text, "%H:%M %d.%m.%Y")
+        logging.info(date)
         if date < datetime.datetime.now():
             raise ValueError()
 
