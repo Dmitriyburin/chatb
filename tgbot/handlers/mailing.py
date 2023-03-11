@@ -289,8 +289,6 @@ async def mailing_controller(bot, delay):
         mailings = await data.get_mailings()
 
         if not mailings:
-            continue
-        else:
             await asyncio.sleep(10)
 
         for mailing in mailings:
